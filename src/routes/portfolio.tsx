@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { SiteLayout } from "@/components/SiteLayout";
 import { fetchProjects, toggleProjectLike } from "@/lib/api";
@@ -38,6 +38,54 @@ const categories = [
 function isVideoUrl(url?: string): boolean {
   if (!url) return false;
   return /\.(mp4|webm|mov|ogg|m4v)(\?.*)?$/i.test(url);
+}
+
+interface LightboxMedia {
+  url: string;
+  isVideo: boolean;
+  label: string;
+}
+
+function getProjectMediaList(project: any): LightboxMedia[] {
+  if (!project) return [];
+  const list: LightboxMedia[] = [];
+  const seen = new Set<string>();
+
+  const pushItem = (url?: string, forceIsVideo?: boolean, defaultLabel?: string) => {
+    if (!url || typeof url !== "string") return;
+    const clean = url.trim();
+    if (!clean || seen.has(clean)) return;
+    seen.add(clean);
+    const isVid = forceIsVideo !== undefined ? forceIsVideo : isVideoUrl(clean);
+    list.push({
+      url: clean,
+      isVideo: isVid,
+      label: defaultLabel || (isVid ? "Video" : `Photo ${list.length + 1}`)
+    });
+  };
+
+  // 1. All images uploaded by user to this project
+  if (Array.isArray(project.images) && project.images.length > 0) {
+    project.images.forEach((img: string, idx: number) => {
+      pushItem(img, undefined, `Photo ${idx + 1}`);
+    });
+  }
+
+  // 2. Dedicated video file (only if uploaded)
+  if (project.video && typeof project.video === "string" && project.video.trim()) {
+    pushItem(project.video, true, "Project Video");
+  }
+
+  // 3. Before/After images
+  if (project.beforeImage) pushItem(project.beforeImage, false, "Before Edit");
+  if (project.afterImage) pushItem(project.afterImage, false, "After Edit");
+
+  // 4. Fallback to thumbnail if list is empty
+  if (list.length === 0 && project.thumbnail) {
+    pushItem(project.thumbnail, undefined, "Cover Photo");
+  }
+
+  return list;
 }
 
 export function PortfolioPage() {
@@ -130,36 +178,25 @@ export function PortfolioPage() {
     }
   };
 
-  // Keyboard navigation for Lightbox
+  const activeLightboxProject = lightboxProjectIndex !== null ? projects[lightboxProjectIndex] : null;
+
+  // Media items belonging ONLY to this active project
+  const activeLightboxMediaList = useMemo(() => {
+    return getProjectMediaList(activeLightboxProject);
+  }, [activeLightboxProject]);
+
+  const currentLightboxItem = activeLightboxMediaList[lightboxImageIndex] || activeLightboxMediaList[0] || null;
+
+  // Lightbox Navigation: Strictly navigate within the current project's media items
   const handlePrevLightbox = useCallback(() => {
-    if (lightboxProjectIndex === null || projects.length === 0) return;
-    const currentProj = projects[lightboxProjectIndex];
-    const imageList = currentProj.images && currentProj.images.length > 0 ? currentProj.images : [currentProj.thumbnail];
-    
-    if (lightboxImageIndex > 0) {
-      setLightboxImageIndex(lightboxImageIndex - 1);
-    } else {
-      const prevProjIdx = (lightboxProjectIndex - 1 + projects.length) % projects.length;
-      setLightboxProjectIndex(prevProjIdx);
-      const prevProj = projects[prevProjIdx];
-      const prevImages = prevProj.images && prevProj.images.length > 0 ? prevProj.images : [prevProj.thumbnail];
-      setLightboxImageIndex(prevImages.length - 1);
-    }
-  }, [lightboxProjectIndex, lightboxImageIndex, projects]);
+    if (activeLightboxMediaList.length <= 1) return;
+    setLightboxImageIndex((prev) => (prev > 0 ? prev - 1 : activeLightboxMediaList.length - 1));
+  }, [activeLightboxMediaList.length]);
 
   const handleNextLightbox = useCallback(() => {
-    if (lightboxProjectIndex === null || projects.length === 0) return;
-    const currentProj = projects[lightboxProjectIndex];
-    const imageList = currentProj.images && currentProj.images.length > 0 ? currentProj.images : [currentProj.thumbnail];
-
-    if (lightboxImageIndex < imageList.length - 1) {
-      setLightboxImageIndex(lightboxImageIndex + 1);
-    } else {
-      const nextProjIdx = (lightboxProjectIndex + 1) % projects.length;
-      setLightboxProjectIndex(nextProjIdx);
-      setLightboxImageIndex(0);
-    }
-  }, [lightboxProjectIndex, lightboxImageIndex, projects]);
+    if (activeLightboxMediaList.length <= 1) return;
+    setLightboxImageIndex((prev) => (prev < activeLightboxMediaList.length - 1 ? prev + 1 : 0));
+  }, [activeLightboxMediaList.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -176,14 +213,6 @@ export function PortfolioPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxProjectIndex, handlePrevLightbox, handleNextLightbox]);
-
-  const activeLightboxProject = lightboxProjectIndex !== null ? projects[lightboxProjectIndex] : null;
-  const activeLightboxImages = activeLightboxProject
-    ? (activeLightboxProject.images && activeLightboxProject.images.length > 0
-        ? activeLightboxProject.images
-        : [activeLightboxProject.thumbnail])
-    : [];
-  const currentLightboxMedia = activeLightboxImages[lightboxImageIndex] || activeLightboxProject?.thumbnail || "";
 
   return (
     <SiteLayout>
@@ -445,8 +474,8 @@ export function PortfolioPage() {
           <div className="flex justify-between items-center z-10" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 flex-wrap">
               <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-mono font-bold text-cyan-400">
-                {activeLightboxImages.length > 1
-                  ? `Photo ${lightboxImageIndex + 1} of ${activeLightboxImages.length}`
+                {activeLightboxMediaList.length > 1
+                  ? `${currentLightboxItem?.label || "Media"} (${lightboxImageIndex + 1} of ${activeLightboxMediaList.length})`
                   : activeLightboxProject.category}
               </span>
               <span className="text-xs text-white font-bold">{activeLightboxProject.title}</span>
@@ -473,48 +502,78 @@ export function PortfolioPage() {
 
           {/* Media Center Stage */}
           <div
-            className="relative flex-1 flex items-center justify-center p-2 my-2 min-h-0"
+            className="relative flex-1 flex flex-col items-center justify-center p-2 my-2 min-h-0"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Prev Button */}
-            <button
-              type="button"
-              onClick={handlePrevLightbox}
-              className="absolute left-2 sm:left-6 z-10 size-12 rounded-full bg-black/70 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl backdrop-blur-md"
-              title="Previous (Left Arrow)"
-            >
-              <ChevronLeft className="size-6" />
-            </button>
+            {/* Prev Button — ONLY show if more than 1 media item in this project */}
+            {activeLightboxMediaList.length > 1 && (
+              <button
+                type="button"
+                onClick={handlePrevLightbox}
+                className="absolute left-2 sm:left-6 z-10 size-12 rounded-full bg-black/70 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl backdrop-blur-md"
+                title="Previous Media (Left Arrow)"
+              >
+                <ChevronLeft className="size-6" />
+              </button>
+            )}
 
-            {/* Media Display */}
-            {isVideoUrl(currentLightboxMedia) || activeLightboxProject.video ? (
+            {/* Media Display — Exact Type Discrimination */}
+            {currentLightboxItem?.isVideo ? (
               <video
-                key={currentLightboxMedia || activeLightboxProject.video}
-                src={currentLightboxMedia || activeLightboxProject.video}
+                key={currentLightboxItem.url}
+                src={currentLightboxItem.url}
                 controls
                 autoPlay
                 playsInline
                 preload="metadata"
-                className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl"
+                className="max-h-[72vh] max-w-full object-contain rounded-2xl shadow-2xl bg-black"
               />
-            ) : (
+            ) : currentLightboxItem ? (
               <img
-                key={currentLightboxMedia}
-                src={currentLightboxMedia}
+                key={currentLightboxItem.url}
+                src={currentLightboxItem.url}
                 alt={activeLightboxProject.title}
-                className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl transition-all duration-300 animate-fade-in"
+                className="max-h-[72vh] max-w-full object-contain rounded-2xl shadow-2xl transition-all duration-300 animate-fade-in"
               />
+            ) : null}
+
+            {/* Next Button — ONLY show if more than 1 media item in this project */}
+            {activeLightboxMediaList.length > 1 && (
+              <button
+                type="button"
+                onClick={handleNextLightbox}
+                className="absolute right-2 sm:right-6 z-10 size-12 rounded-full bg-black/70 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl backdrop-blur-md"
+                title="Next Media (Right Arrow)"
+              >
+                <ChevronRight className="size-6" />
+              </button>
             )}
 
-            {/* Next Button */}
-            <button
-              type="button"
-              onClick={handleNextLightbox}
-              className="absolute right-2 sm:right-6 z-10 size-12 rounded-full bg-black/70 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl backdrop-blur-md"
-              title="Next (Right Arrow)"
-            >
-              <ChevronRight className="size-6" />
-            </button>
+            {/* Multi-item Thumbnail Strip */}
+            {activeLightboxMediaList.length > 1 && (
+              <div className="mt-3 flex items-center justify-center gap-2 max-w-full overflow-x-auto py-1 px-2 no-scrollbar z-10">
+                {activeLightboxMediaList.map((item, idx) => (
+                  <button
+                    key={item.url + idx}
+                    type="button"
+                    onClick={() => setLightboxImageIndex(idx)}
+                    className={`size-11 rounded-xl overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
+                      lightboxImageIndex === idx
+                        ? "border-cyan-400 scale-105 shadow-[0_0_12px_rgba(6,182,212,0.8)]"
+                        : "border-white/20 opacity-50 hover:opacity-100"
+                    }`}
+                  >
+                    {item.isVideo ? (
+                      <div className="size-full bg-slate-900 grid place-items-center text-cyan-400 font-bold text-xs">
+                        ▶
+                      </div>
+                    ) : (
+                      <img src={item.url} alt={`Thumb ${idx + 1}`} className="size-full object-cover" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Bottom Caption & Controls */}
@@ -527,7 +586,9 @@ export function PortfolioPage() {
             </p>
             <div className="flex items-center gap-2 shrink-0">
               <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
-                Use Left / Right Arrows to Navigate • Esc to Close
+                {activeLightboxMediaList.length > 1
+                  ? "Use Left / Right Arrows to Navigate • Esc to Close"
+                  : "Esc to Close"}
               </span>
             </div>
           </div>
