@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { SiteLayout } from "@/components/SiteLayout";
 import { BeforeAfterSlider } from "@/components/BeforeAfterSlider";
@@ -290,6 +291,24 @@ export function ProjectDetailPage() {
 
     return () => clearInterval(interval);
   }, [isAutoMoving, lightboxIndex, autoMoveSpeed, project?.images]);
+
+  // Lock body scroll and enable mobile gesture back button for Lightbox
+  useEffect(() => {
+    if (lightboxIndex !== null) {
+      document.body.style.overflow = "hidden";
+      window.history.pushState({ fk_lightbox: true }, "");
+      const handlePop = () => {
+        setLightboxIndex(null);
+      };
+      window.addEventListener("popstate", handlePop);
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("popstate", handlePop);
+      };
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [lightboxIndex]);
 
   const handleNextPhoto = () => {
     if (!project?.images || project.images.length <= 1) return;
@@ -1338,162 +1357,176 @@ export function ProjectDetailPage() {
       </article>
 
       {/* Interactive Fullscreen Lightbox Modal */}
-      {lightboxIndex !== null && project.images && project.images.length > 0 && (
-        <div
-          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col justify-between p-4 sm:p-6 animate-fade-in select-none"
-          onClick={() => setLightboxIndex(null)}
-        >
-          {/* Top Bar */}
-          <div className="flex justify-between items-center z-10" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-mono font-bold text-cyan-400">
-                Photo {lightboxIndex + 1} of {project.images.length}
-              </span>
-              <span className="text-xs text-slate-300 font-semibold hidden sm:inline">{project.title}</span>
-              {project.photoTitle && (
-                <span className="px-2.5 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-[11px] font-semibold flex items-center gap-1">
-                  <Camera className="size-3 text-cyan-400" /> {project.photoTitle}
+      {lightboxIndex !== null && project.images && project.images.length > 0 &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex flex-col justify-between p-3 sm:p-6 animate-fade-in select-none"
+            onClick={() => setLightboxIndex(null)}
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Top Bar — Fully elevated at z-[9999] */}
+            <div className="flex justify-between items-center z-10 gap-2 pb-3 border-b border-white/10 flex-wrap sm:flex-nowrap" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setLightboxIndex(null)}
+                  className="px-3 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-cyan-500 hover:text-black text-white border border-white/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-lg active:scale-95 shrink-0"
+                  title="Back (Esc)"
+                >
+                  <ArrowLeft className="size-4" />
+                  <span>Back</span>
+                </button>
+                <span className="px-2.5 sm:px-3 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-[11px] sm:text-xs font-mono font-bold text-cyan-300 shrink-0">
+                  Photo {lightboxIndex + 1} of {project.images.length}
                 </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              {/* Download Current Media in Lightbox */}
-              <button
-                type="button"
-                onClick={() => {
-                  const currentUrl = project.images[lightboxIndex];
-                  const isVid = isVideoUrl(currentUrl);
-                  const baseName = project.folderName || project.slug || "media";
-                  const name = isVid ? `${baseName}_video_${lightboxIndex + 1}` : `${baseName}_photo_${lightboxIndex + 1}`;
-                  handleDownloadSingleMedia(currentUrl, name);
-                }}
-                disabled={downloadingFile === project.images[lightboxIndex]}
-                className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-emerald-500 hover:text-black text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                title={isVideoUrl(project.images[lightboxIndex]) ? "Download this video (MP4)" : "Download this photo (HD)"}
-              >
-                <Download className={`size-3.5 ${downloadingFile === project.images[lightboxIndex] ? "animate-bounce" : ""}`} />
-                <span>
-                  {downloadingFile === project.images[lightboxIndex]
-                    ? "Downloading..."
-                    : isVideoUrl(project.images[lightboxIndex])
-                    ? "Download Video"
-                    : "Download Photo"}
-                </span>
-              </button>
+                <span className="text-xs text-slate-300 font-semibold hidden sm:inline">{project.title}</span>
+                {project.photoTitle && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-[11px] font-semibold flex items-center gap-1 hidden md:inline-flex">
+                    <Camera className="size-3 text-cyan-400" /> {project.photoTitle}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0 ml-auto">
+                {/* Download Current Media in Lightbox */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentUrl = project.images[lightboxIndex];
+                    const isVid = isVideoUrl(currentUrl);
+                    const baseName = project.folderName || project.slug || "media";
+                    const name = isVid ? `${baseName}_video_${lightboxIndex + 1}` : `${baseName}_photo_${lightboxIndex + 1}`;
+                    handleDownloadSingleMedia(currentUrl, name);
+                  }}
+                  disabled={downloadingFile === project.images[lightboxIndex]}
+                  className="px-3 sm:px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-emerald-500 hover:text-black text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  title={isVideoUrl(project.images[lightboxIndex]) ? "Download this video (MP4)" : "Download this photo (HD)"}
+                >
+                  <Download className={`size-3.5 ${downloadingFile === project.images[lightboxIndex] ? "animate-bounce" : ""}`} />
+                  <span className="hidden sm:inline">
+                    {downloadingFile === project.images[lightboxIndex]
+                      ? "Downloading..."
+                      : isVideoUrl(project.images[lightboxIndex])
+                      ? "Download Video"
+                      : "Download Photo"}
+                  </span>
+                </button>
 
+                {project.images.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAutoMoving(!isAutoMoving)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md ${
+                      isAutoMoving
+                        ? "bg-emerald-500 text-black animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+                        : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                    }`}
+                    title="Auto-move slideshow in fullscreen"
+                  >
+                    {isAutoMoving ? (
+                      <>
+                        <Pause className="size-3.5 fill-black" />
+                        <span className="hidden sm:inline">Pause</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="size-3.5 fill-white" />
+                        <span className="hidden sm:inline">Slideshow</span>
+                      </>
+                    )}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setLightboxIndex(null)}
+                  className="size-9 rounded-xl bg-white/10 hover:bg-red-500/80 text-white border border-white/20 transition-all grid place-items-center cursor-pointer active:scale-95 shadow-md"
+                  title="Close (Esc)"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Main Photo Center Container with Prev / Next Navigation */}
+            <div
+              className="relative flex-1 flex items-center justify-center p-2 my-2 min-h-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Previous Button */}
               {project.images.length > 1 && (
                 <button
                   type="button"
-                  onClick={() => setIsAutoMoving(!isAutoMoving)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md ${
-                    isAutoMoving
-                      ? "bg-emerald-500 text-black animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]"
-                      : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                  }`}
-                  title="Auto-move slideshow in fullscreen"
+                  onClick={() =>
+                    setLightboxIndex((prev) =>
+                      prev !== null ? (prev === 0 ? project.images.length - 1 : prev - 1) : 0
+                    )
+                  }
+                  className="absolute left-2 sm:left-6 z-10 size-11 sm:size-12 rounded-full bg-black/60 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl"
                 >
-                  {isAutoMoving ? (
-                    <>
-                      <Pause className="size-3.5 fill-black" />
-                      <span>⏸️ Pause Auto-Move</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="size-3.5 fill-white" />
-                      <span>▶️ Auto-Move ({autoMoveSpeed / 1000}s)</span>
-                    </>
-                  )}
+                  <ChevronLeft className="size-6" />
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => setLightboxIndex(null)}
-                className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-          </div>
 
-          {/* Main Photo Center Container with Prev / Next Navigation */}
-          <div
-            className="relative flex-1 flex items-center justify-center p-2 my-2 min-h-0"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Previous Button */}
-            {project.images.length > 1 && (
-              <button
-                type="button"
-                onClick={() =>
-                  setLightboxIndex((prev) =>
-                    prev !== null ? (prev === 0 ? project.images.length - 1 : prev - 1) : 0
-                  )
-                }
-                className="absolute left-2 sm:left-6 z-10 size-12 rounded-full bg-black/60 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl"
-              >
-                <ChevronLeft className="size-6" />
-              </button>
-            )}
+              {/* Displayed Image or Video */}
+              {isVideoUrl(project.images[lightboxIndex]) ? (
+                <video
+                  key={project.images[lightboxIndex]}
+                  src={project.images[lightboxIndex]}
+                  controls
+                  autoPlay
+                  playsInline
+                  preload="metadata"
+                  className="max-h-[72vh] sm:max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl"
+                />
+              ) : (
+                <img
+                  src={project.images[lightboxIndex]}
+                  alt={`Full size ${lightboxIndex + 1}`}
+                  className="max-h-[72vh] sm:max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl transition-all duration-300"
+                />
+              )}
 
-            {/* Displayed Image or Video */}
-            {isVideoUrl(project.images[lightboxIndex]) ? (
-              <video
-                key={project.images[lightboxIndex]}
-                src={project.images[lightboxIndex]}
-                controls
-                autoPlay
-                playsInline
-                preload="metadata"
-                className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl"
-              />
-            ) : (
-              <img
-                src={project.images[lightboxIndex]}
-                alt={`Full size ${lightboxIndex + 1}`}
-                className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl transition-all duration-300"
-              />
-            )}
-
-            {/* Next Button */}
-            {project.images.length > 1 && (
-              <button
-                type="button"
-                onClick={() =>
-                  setLightboxIndex((prev) =>
-                    prev !== null ? (prev === project.images.length - 1 ? 0 : prev + 1) : 0
-                  )
-                }
-                className="absolute right-2 sm:right-6 z-10 size-12 rounded-full bg-black/60 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl"
-              >
-                <ChevronRight className="size-6" />
-              </button>
-            )}
-          </div>
-
-          {/* Bottom Thumbnails Strip */}
-          {project.images.length > 1 && (
-            <div
-              className="flex justify-center gap-2 overflow-x-auto py-2 z-10"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {project.images.map((img: string, idx: number) => (
+              {/* Next Button */}
+              {project.images.length > 1 && (
                 <button
-                  key={idx}
                   type="button"
-                  onClick={() => setLightboxIndex(idx)}
-                  className={`size-14 rounded-xl overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
-                    lightboxIndex === idx
-                      ? "border-cyan-400 scale-105 shadow-[0_0_12px_#06b6d4]"
-                      : "border-white/20 opacity-50 hover:opacity-100"
-                  }`}
+                  onClick={() =>
+                    setLightboxIndex((prev) =>
+                      prev !== null ? (prev === project.images.length - 1 ? 0 : prev + 1) : 0
+                    )
+                  }
+                  className="absolute right-2 sm:right-6 z-10 size-11 sm:size-12 rounded-full bg-black/60 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl"
                 >
-                  <img src={img} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
+                  <ChevronRight className="size-6" />
                 </button>
-              ))}
+              )}
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Bottom Thumbnails Strip */}
+            {project.images.length > 1 && (
+              <div
+                className="flex justify-center gap-2 overflow-x-auto py-2 z-10"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {project.images.map((img: string, idx: number) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setLightboxIndex(idx)}
+                    className={`size-12 sm:size-14 rounded-xl overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
+                      lightboxIndex === idx
+                        ? "border-cyan-400 scale-105 shadow-[0_0_12px_#06b6d4]"
+                        : "border-white/20 opacity-50 hover:opacity-100"
+                    }`}
+                  >
+                    <img src={img} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>,
+          document.body
+        )}
       {/* Project & Folder QR Code Modal */}
       <QRCodeModal
         isOpen={qrModalOpen}

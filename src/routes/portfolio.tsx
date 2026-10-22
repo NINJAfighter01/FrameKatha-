@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { SiteLayout } from "@/components/SiteLayout";
 import { fetchProjects, toggleProjectLike } from "@/lib/api";
@@ -19,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRight,
+  ArrowLeft,
   Download,
   Film,
   Play
@@ -213,6 +215,24 @@ export function PortfolioPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxProjectIndex, handlePrevLightbox, handleNextLightbox]);
+
+  // Lock body scroll and enable mobile gesture back button
+  useEffect(() => {
+    if (lightboxProjectIndex !== null) {
+      document.body.style.overflow = "hidden";
+      window.history.pushState({ fk_lightbox: true }, "");
+      const handlePop = () => {
+        setLightboxProjectIndex(null);
+      };
+      window.addEventListener("popstate", handlePop);
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("popstate", handlePop);
+      };
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [lightboxProjectIndex]);
 
   return (
     <SiteLayout>
@@ -464,136 +484,161 @@ export function PortfolioPage() {
         )}
       </section>
 
-      {/* ── Interactive Fullscreen Lightbox Modal (Keyboard & Touch Controlled) ── */}
-      {activeLightboxProject && (
-        <div
-          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-6 animate-fade-in select-none"
-          onClick={() => setLightboxProjectIndex(null)}
-        >
-          {/* Top Bar */}
-          <div className="flex justify-between items-center z-10" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-mono font-bold text-cyan-400">
-                {activeLightboxMediaList.length > 1
-                  ? `${currentLightboxItem?.label || "Media"} (${lightboxImageIndex + 1} of ${activeLightboxMediaList.length})`
-                  : activeLightboxProject.category}
-              </span>
-              <span className="text-xs text-white font-bold">{activeLightboxProject.title}</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Link
-                to={`/portfolio/${activeLightboxProject.slug}`}
-                className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black border border-cyan-500/40 text-xs font-bold transition-all flex items-center gap-1.5"
-              >
-                <span>View Full Story</span>
-                <ArrowRight className="size-3.5" />
-              </Link>
-              <button
-                type="button"
-                onClick={() => setLightboxProjectIndex(null)}
-                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
-                title="Close Lightbox (Esc)"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Media Center Stage */}
+      {/* ── Interactive Fullscreen Lightbox Modal (Keyboard, Touch & History Controlled) ── */}
+      {activeLightboxProject &&
+        createPortal(
           <div
-            className="relative flex-1 flex flex-col items-center justify-center p-2 my-2 min-h-0"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-2xl flex flex-col justify-between p-3 sm:p-6 animate-fade-in select-none"
+            onClick={() => setLightboxProjectIndex(null)}
+            role="dialog"
+            aria-modal="true"
           >
-            {/* Prev Button — ONLY show if more than 1 media item in this project */}
-            {activeLightboxMediaList.length > 1 && (
-              <button
-                type="button"
-                onClick={handlePrevLightbox}
-                className="absolute left-2 sm:left-6 z-10 size-12 rounded-full bg-black/70 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl backdrop-blur-md"
-                title="Previous Media (Left Arrow)"
-              >
-                <ChevronLeft className="size-6" />
-              </button>
-            )}
+            {/* Top Bar — Fully elevated at z-[9999], never hidden behind navbar */}
+            <div
+              className="flex items-center justify-between gap-2.5 pb-3 border-b border-white/10 z-10 w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Left Side: Back to Gallery Button & Counter Badge */}
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
+                {/* Back to Gallery Button requested by user */}
+                <button
+                  type="button"
+                  onClick={() => setLightboxProjectIndex(null)}
+                  className="px-3 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-cyan-500 hover:text-black text-white border border-white/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-lg active:scale-95 shrink-0"
+                  title="Back to Gallery (Esc)"
+                >
+                  <ArrowLeft className="size-4" />
+                  <span className="hidden xs:inline">Back to Gallery</span>
+                  <span className="xs:hidden">Back</span>
+                </button>
 
-            {/* Media Display — Exact Type Discrimination */}
-            {currentLightboxItem?.isVideo ? (
-              <video
-                key={currentLightboxItem.url}
-                src={currentLightboxItem.url}
-                controls
-                autoPlay
-                playsInline
-                preload="metadata"
-                className="max-h-[72vh] max-w-full object-contain rounded-2xl shadow-2xl bg-black"
-              />
-            ) : currentLightboxItem ? (
-              <img
-                key={currentLightboxItem.url}
-                src={currentLightboxItem.url}
-                alt={activeLightboxProject.title}
-                className="max-h-[72vh] max-w-full object-contain rounded-2xl shadow-2xl transition-all duration-300 animate-fade-in"
-              />
-            ) : null}
+                <span className="px-2.5 sm:px-3 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-[11px] sm:text-xs font-mono font-bold text-cyan-300 shrink-0">
+                  {activeLightboxMediaList.length > 1
+                    ? `${currentLightboxItem?.label || "Media"} (${lightboxImageIndex + 1}/${activeLightboxMediaList.length})`
+                    : activeLightboxProject.category}
+                </span>
 
-            {/* Next Button — ONLY show if more than 1 media item in this project */}
-            {activeLightboxMediaList.length > 1 && (
-              <button
-                type="button"
-                onClick={handleNextLightbox}
-                className="absolute right-2 sm:right-6 z-10 size-12 rounded-full bg-black/70 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl backdrop-blur-md"
-                title="Next Media (Right Arrow)"
-              >
-                <ChevronRight className="size-6" />
-              </button>
-            )}
-
-            {/* Multi-item Thumbnail Strip */}
-            {activeLightboxMediaList.length > 1 && (
-              <div className="mt-3 flex items-center justify-center gap-2 max-w-full overflow-x-auto py-1 px-2 no-scrollbar z-10">
-                {activeLightboxMediaList.map((item, idx) => (
-                  <button
-                    key={item.url + idx}
-                    type="button"
-                    onClick={() => setLightboxImageIndex(idx)}
-                    className={`size-11 rounded-xl overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
-                      lightboxImageIndex === idx
-                        ? "border-cyan-400 scale-105 shadow-[0_0_12px_rgba(6,182,212,0.8)]"
-                        : "border-white/20 opacity-50 hover:opacity-100"
-                    }`}
-                  >
-                    {item.isVideo ? (
-                      <div className="size-full bg-slate-900 grid place-items-center text-cyan-400 font-bold text-xs">
-                        ▶
-                      </div>
-                    ) : (
-                      <img src={item.url} alt={`Thumb ${idx + 1}`} className="size-full object-cover" />
-                    )}
-                  </button>
-                ))}
+                <span className="text-xs sm:text-sm text-white font-bold truncate max-w-[120px] sm:max-w-xs md:max-w-md hidden sm:inline-block">
+                  {activeLightboxProject.title}
+                </span>
               </div>
-            )}
-          </div>
 
-          {/* Bottom Caption & Controls */}
-          <div
-            className="z-10 flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/10 text-xs text-slate-300"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="line-clamp-1 text-center sm:text-left">
-              {activeLightboxProject.description}
-            </p>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
-                {activeLightboxMediaList.length > 1
-                  ? "Use Left / Right Arrows to Navigate • Esc to Close"
-                  : "Esc to Close"}
-              </span>
+              {/* Right Side: View Full Story & Close X Button */}
+              <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  to={`/portfolio/${activeLightboxProject.slug}`}
+                  className="px-3 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
+                >
+                  <span className="hidden sm:inline">View Full Story</span>
+                  <span className="sm:hidden">Story</span>
+                  <ArrowRight className="size-3.5" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setLightboxProjectIndex(null)}
+                  className="size-9 rounded-xl bg-white/10 hover:bg-red-500/80 text-white border border-white/20 transition-all grid place-items-center cursor-pointer active:scale-95 shadow-md"
+                  title="Close Lightbox (Esc)"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+
+            {/* Media Center Stage */}
+            <div
+              className="relative flex-1 flex flex-col items-center justify-center p-2 my-2 min-h-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Prev Button — ONLY show if more than 1 media item in this project */}
+              {activeLightboxMediaList.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handlePrevLightbox}
+                  className="absolute left-2 sm:left-6 z-10 size-11 sm:size-12 rounded-full bg-black/70 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl backdrop-blur-md"
+                  title="Previous Media (Left Arrow)"
+                >
+                  <ChevronLeft className="size-6" />
+                </button>
+              )}
+
+              {/* Media Display — Exact Type Discrimination */}
+              {currentLightboxItem?.isVideo ? (
+                <video
+                  key={currentLightboxItem.url}
+                  src={currentLightboxItem.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  preload="metadata"
+                  className="max-h-[70vh] sm:max-h-[72vh] max-w-full object-contain rounded-2xl shadow-2xl bg-black"
+                />
+              ) : currentLightboxItem ? (
+                <img
+                  key={currentLightboxItem.url}
+                  src={currentLightboxItem.url}
+                  alt={activeLightboxProject.title}
+                  className="max-h-[70vh] sm:max-h-[72vh] max-w-full object-contain rounded-2xl shadow-2xl transition-all duration-300 animate-fade-in"
+                />
+              ) : null}
+
+              {/* Next Button — ONLY show if more than 1 media item in this project */}
+              {activeLightboxMediaList.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handleNextLightbox}
+                  className="absolute right-2 sm:right-6 z-10 size-11 sm:size-12 rounded-full bg-black/70 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl backdrop-blur-md"
+                  title="Next Media (Right Arrow)"
+                >
+                  <ChevronRight className="size-6" />
+                </button>
+              )}
+
+              {/* Multi-item Thumbnail Strip */}
+              {activeLightboxMediaList.length > 1 && (
+                <div className="mt-3 flex items-center justify-center gap-2 max-w-full overflow-x-auto py-1 px-2 no-scrollbar z-10">
+                  {activeLightboxMediaList.map((item, idx) => (
+                    <button
+                      key={item.url + idx}
+                      type="button"
+                      onClick={() => setLightboxImageIndex(idx)}
+                      className={`size-11 rounded-xl overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
+                        lightboxImageIndex === idx
+                          ? "border-cyan-400 scale-105 shadow-[0_0_12px_rgba(6,182,212,0.8)]"
+                          : "border-white/20 opacity-50 hover:opacity-100"
+                      }`}
+                    >
+                      {item.isVideo ? (
+                        <div className="size-full bg-slate-900 grid place-items-center text-cyan-400 font-bold text-xs">
+                          ▶
+                        </div>
+                      ) : (
+                        <img src={item.url} alt={`Thumb ${idx + 1}`} className="size-full object-cover" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Caption & Controls */}
+            <div
+              className="z-10 flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/10 text-xs text-slate-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="line-clamp-1 text-center sm:text-left">
+                {activeLightboxProject.description}
+              </p>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
+                  {activeLightboxMediaList.length > 1
+                    ? "Use Left / Right Arrows to Navigate • Esc to Close"
+                    : "Esc to Close"}
+                </span>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* ── Global Portfolio QR Modal ── */}
       <QRCodeModal
