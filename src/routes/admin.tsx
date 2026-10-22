@@ -1910,22 +1910,22 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     {/* 3A. Bahar ka Main Thumbnail */}
-                    <div className="p-4 rounded-xl bg-cyan-950/30 border border-cyan-500/40 space-y-3 shadow-lg">
+                    <div className="p-4 rounded-xl bg-cyan-950/20 border border-cyan-500/30 space-y-3 shadow-lg">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 text-cyan-300 font-bold text-xs">
-                          <span className="size-2 rounded-full bg-cyan-400 animate-pulse" />
-                          <span>3A. Bahar Ka Main Cover *</span>
+                          <span className="size-2 rounded-full bg-cyan-400" />
+                          <span>3A. Bahar Ka Main Cover</span>
                         </div>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono">Compulsory</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-300 font-mono">Optional</span>
                       </div>
                       <div className="p-2.5 rounded-lg bg-black/40 border border-cyan-500/20 text-[11px] text-slate-300 leading-tight">
-                        🌟 <strong>Yeh kahan dikhega:</strong> Website ke main <strong>/portfolio</strong> page aur <strong>Home Page</strong> cards par bahar dikhega.
+                        🌟 <strong>Yeh kahan dikhega:</strong> Website ke main <strong>/portfolio</strong> page aur <strong>Home Page</strong> cards par bahar dikhega. (Agar upload nahi karenge, toh album ki pehli photo automatically bahar dikhegi).
                       </div>
                       <FileUploadPicker
                         label="Upload Bahar Ka Main Thumbnail"
                         value={formData.thumbnail}
                         onChange={(url) => setFormData({ ...formData, thumbnail: url })}
-                        hint="Front cover image for public card display"
+                        hint="Front cover image for public card display (Optional)"
                       />
                     </div>
 
