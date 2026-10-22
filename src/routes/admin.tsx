@@ -589,11 +589,11 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         fetchClientGalleries()
       ]);
       setAnalytics(anData);
-      setProjects(projData && projData.length > 0 ? projData : DEFAULT_PROJECTS);
-      setCategories(catData && catData.length > 0 ? catData : DEFAULT_CATEGORIES);
-      setTestimonials(testData && testData.length > 0 ? testData : DEFAULT_TESTIMONIALS);
-      setMessages(msgData || []);
-      setClientGalleries(clientData && clientData.length > 0 ? clientData : DEFAULT_CLIENT_GALLERIES);
+      setProjects(Array.isArray(projData) ? projData : DEFAULT_PROJECTS);
+      setCategories(Array.isArray(catData) ? catData : DEFAULT_CATEGORIES);
+      setTestimonials(Array.isArray(testData) ? testData : DEFAULT_TESTIMONIALS);
+      setMessages(Array.isArray(msgData) ? msgData : []);
+      setClientGalleries(Array.isArray(clientData) ? clientData : DEFAULT_CLIENT_GALLERIES);
       if (settData) {
         setSiteSettings(settData);
         setSettingsForm({

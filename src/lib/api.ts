@@ -1,8 +1,30 @@
-const API_BASE_URL = '/api';
+export const CLOUD_API_BASE = 'https://framekatha.netlify.app/api';
+
+export function getApiBaseUrl(): string {
+  if (typeof window === 'undefined') return CLOUD_API_BASE;
+  // If running directly on framekatha.netlify.app, same-origin /api is direct
+  if (window.location.origin.includes('netlify.app')) {
+    return '/api';
+  }
+  // If deployed to Surge (framekatha-studio.surge.sh), GitHub Pages, or any client device (phone/tablet),
+  // connect to the 24/7 cloud database backend
+  return CLOUD_API_BASE;
+}
+
+export const API_BASE_URL = typeof window !== 'undefined' && window.location.origin.includes('netlify.app')
+  ? '/api'
+  : 'https://framekatha.netlify.app/api';
 
 export function cleanMediaUrl(url: any): string {
   if (typeof url !== 'string' || !url) return '';
+  // If it's a relative /uploads/... from backend, route to the cloud media CDN
+  if (url.startsWith('/uploads/')) {
+    return `https://framekatha.netlify.app/api${url}`;
+  }
   return url
+    .replace(/^https?:\/\/localhost:\d+\/uploads/i, 'https://framekatha.netlify.app/api/uploads')
+    .replace(/^https?:\/\/127\.0\.0\.1:\d+\/uploads/i, 'https://framekatha.netlify.app/api/uploads')
+    .replace(/^https?:\/\/0\.0\.0\.0:\d+\/uploads/i, 'https://framekatha.netlify.app/api/uploads')
     .replace(/^https?:\/\/localhost:\d+/i, '')
     .replace(/^https?:\/\/127\.0\.0\.1:\d+/i, '')
     .replace(/^https?:\/\/0\.0\.0\.0:\d+/i, '');
@@ -389,7 +411,21 @@ export const DEFAULT_CLIENT_GALLERIES: any[] = [
 
 async function safeApiFetch<T = any>(url: string, options?: RequestInit): Promise<T | null> {
   try {
-    const res = await fetch(url, options);
+    // Append anti-cache query param on GET requests to prevent mobile browser staleness
+    const sep = url.includes('?') ? '&' : '?';
+    const targetUrl = (options?.method && options.method !== 'GET')
+      ? url
+      : `${url}${sep}_nocache=${Date.now()}`;
+
+    const res = await fetch(targetUrl, {
+      ...options,
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        ...(options?.headers || {})
+      }
+    });
     if (!res.ok) return null;
     const ct = res.headers.get('content-type') || '';
     if (!ct.includes('application/json')) {
@@ -472,10 +508,12 @@ export async function fetchProjects(params?: {
   if (params?.sort_by) query.append('sort_by', params.sort_by);
 
   const data = await safeApiFetch<any[]>(`${API_BASE_URL}/projects?${query.toString()}`);
-  if (Array.isArray(data) && data.length > 0) {
-    return data
+  if (Array.isArray(data)) {
+    const list = data
       .filter((p: any) => !deletedSet.has(p.id) && !deletedSet.has(p.slug))
       .map(cleanProjectData);
+    setLocalStore('projects', list);
+    return list;
   }
 
   // Fallback
@@ -500,10 +538,12 @@ export async function fetchProjects(params?: {
 export async function fetchAllProjectsCMS() {
   const deletedSet = getDeletedSet('projects');
   const data = await safeApiFetch<any[]>(`${API_BASE_URL}/projects/all-cms`);
-  if (Array.isArray(data) && data.length > 0) {
-    return data
+  if (Array.isArray(data)) {
+    const list = data
       .filter((p: any) => !deletedSet.has(p.id) && !deletedSet.has(p.slug))
       .map(cleanProjectData);
+    setLocalStore('projects', list);
+    return list;
   }
   return getLocalStore('projects', DEFAULT_PROJECTS).map(cleanProjectData);
 }
@@ -590,7 +630,12 @@ export async function createProject(data: any) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (backendResult) return backendResult;
+  if (backendResult) {
+    const all = getLocalStore('projects', DEFAULT_PROJECTS);
+    const updated = [backendResult, ...all.filter((p: any) => p.id !== backendResult.id)];
+    setLocalStore('projects', updated);
+    return backendResult;
+  }
 
   const all = getLocalStore('projects', DEFAULT_PROJECTS);
   const newProj = {
@@ -613,7 +658,15 @@ export async function updateProject(id: string, data: any) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (backendResult) return backendResult;
+  if (backendResult) {
+    const all = getLocalStore('projects', DEFAULT_PROJECTS);
+    const idx = all.findIndex((p: any) => p.id === id || p.slug === id);
+    if (idx !== -1) {
+      all[idx] = backendResult;
+      setLocalStore('projects', all);
+    }
+    return backendResult;
+  }
 
   const all = getLocalStore('projects', DEFAULT_PROJECTS);
   const idx = all.findIndex((p: any) => p.id === id || p.slug === id);
@@ -639,8 +692,10 @@ export async function deleteProject(id: string) {
 export async function fetchCategories() {
   const deletedSet = getDeletedSet('categories');
   const data = await safeApiFetch<any[]>(`${API_BASE_URL}/categories`);
-  if (Array.isArray(data) && data.length > 0) {
-    return data.filter((c: any) => !deletedSet.has(c.id) && !deletedSet.has(c.slug));
+  if (Array.isArray(data)) {
+    const list = data.filter((c: any) => !deletedSet.has(c.id) && !deletedSet.has(c.slug));
+    setLocalStore('categories', list);
+    return list;
   }
   return getLocalStore('categories', DEFAULT_CATEGORIES);
 }
@@ -651,7 +706,12 @@ export async function createCategory(data: any) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (backendResult) return backendResult;
+  if (backendResult) {
+    const all = getLocalStore('categories', DEFAULT_CATEGORIES);
+    all.push(backendResult);
+    setLocalStore('categories', all);
+    return backendResult;
+  }
 
   const all = getLocalStore('categories', DEFAULT_CATEGORIES);
   const newCat = { ...data, id: `cat-${Date.now().toString(36)}`, count: 0 };
@@ -666,7 +726,15 @@ export async function updateCategory(id: string, data: any) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (backendResult) return backendResult;
+  if (backendResult) {
+    const all = getLocalStore('categories', DEFAULT_CATEGORIES);
+    const idx = all.findIndex((c: any) => c.id === id || c.slug === id);
+    if (idx !== -1) {
+      all[idx] = backendResult;
+      setLocalStore('categories', all);
+    }
+    return backendResult;
+  }
 
   const all = getLocalStore('categories', DEFAULT_CATEGORIES);
   const idx = all.findIndex((c: any) => c.id === id || c.slug === id);
@@ -692,8 +760,10 @@ export async function deleteCategory(id: string) {
 export async function fetchTestimonials() {
   const deletedSet = getDeletedSet('testimonials');
   const data = await safeApiFetch<any[]>(`${API_BASE_URL}/testimonials`);
-  if (Array.isArray(data) && data.length > 0) {
-    return data.filter((t: any) => !deletedSet.has(t.id));
+  if (Array.isArray(data)) {
+    const list = data.filter((t: any) => !deletedSet.has(t.id));
+    setLocalStore('testimonials', list);
+    return list;
   }
   return getLocalStore('testimonials', DEFAULT_TESTIMONIALS);
 }
@@ -704,7 +774,12 @@ export async function createTestimonial(data: any) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (backendResult) return backendResult;
+  if (backendResult) {
+    const all = getLocalStore('testimonials', DEFAULT_TESTIMONIALS);
+    all.push(backendResult);
+    setLocalStore('testimonials', all);
+    return backendResult;
+  }
 
   const all = getLocalStore('testimonials', DEFAULT_TESTIMONIALS);
   const newTest = { ...data, id: `test-${Date.now().toString(36)}` };
@@ -896,7 +971,50 @@ export async function aiSuggestMetadata(data: { prompt?: string; title?: string;
   };
 }
 
-// ── FILE UPLOADS ───────────────────────────────────────────────────────────
+// ── FILE UPLOADS & MEDIA HANDLING ──────────────────────────────────────────
+
+export function compressImageToBase64(file: File, maxWidth = 1600, quality = 0.82): Promise<string> {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string) || '');
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxWidth) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } else {
+          resolve((e.target?.result as string) || '');
+        }
+      };
+      img.onerror = () => resolve((e.target?.result as string) || '');
+      img.src = (e.target?.result as string) || '';
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+}
 
 export async function uploadFile(file: File): Promise<string> {
   try {
@@ -908,12 +1026,22 @@ export async function uploadFile(file: File): Promise<string> {
     });
     if (res.ok) {
       const data = await res.json();
-      return cleanMediaUrl(data.url);
+      if (data && data.url) {
+        return cleanMediaUrl(data.url);
+      }
     }
-  } catch {
-    // local fallback using URL.createObjectURL or data URL
+  } catch (err) {
+    console.warn('[FrameKatha API] Cloud file upload fetch failed, using durable compressed base64:', err);
   }
-  return URL.createObjectURL(file);
+
+  // Durable fallback: Convert to compressed Base64 Data URL (visible across all devices, survives refreshes)
+  try {
+    const base64 = await compressImageToBase64(file);
+    if (base64) return base64;
+  } catch {
+    // ignore
+  }
+  return '';
 }
 
 export async function uploadMultipleFiles(
@@ -960,8 +1088,8 @@ export async function uploadMultipleFiles(
 export async function fetchClientGalleries(): Promise<any[]> {
   const deletedSet = getDeletedSet('client_galleries');
   const data = await safeApiFetch<any[]>(`${API_BASE_URL}/client-galleries`);
-  if (Array.isArray(data) && data.length > 0) {
-    return data
+  if (Array.isArray(data)) {
+    const list = data
       .filter((g: any) => !deletedSet.has(g.id) && !deletedSet.has(g.slug))
       .map((g: any) => ({
         ...g,
@@ -969,6 +1097,8 @@ export async function fetchClientGalleries(): Promise<any[]> {
         images: Array.isArray(g.images) ? g.images.map(cleanMediaUrl) : [],
         selectedImages: Array.isArray(g.selectedImages) ? g.selectedImages.map(cleanMediaUrl) : []
       }));
+    setLocalStore('client_galleries', list);
+    return list;
   }
 
   const list = getLocalStore('client_galleries', DEFAULT_CLIENT_GALLERIES);
