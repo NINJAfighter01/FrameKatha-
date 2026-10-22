@@ -220,10 +220,10 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
   // Data states
   const [analytics, setAnalytics] = useState<any>(null);
-  const [projects, setProjects] = useState<any[]>(DEFAULT_PROJECTS);
-  const [clientGalleries, setClientGalleries] = useState<any[]>(DEFAULT_CLIENT_GALLERIES);
-  const [categories, setCategories] = useState<any[]>(DEFAULT_CATEGORIES);
-  const [testimonials, setTestimonials] = useState<any[]>(DEFAULT_TESTIMONIALS);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [clientGalleries, setClientGalleries] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [testimonials, setTestimonials] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [siteSettings, setSiteSettings] = useState<any>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
@@ -589,11 +589,11 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         fetchClientGalleries()
       ]);
       setAnalytics(anData);
-      setProjects(Array.isArray(projData) ? projData : DEFAULT_PROJECTS);
-      setCategories(Array.isArray(catData) ? catData : DEFAULT_CATEGORIES);
-      setTestimonials(Array.isArray(testData) ? testData : DEFAULT_TESTIMONIALS);
+      setProjects(Array.isArray(projData) ? projData : []);
+      setCategories(Array.isArray(catData) ? catData : []);
+      setTestimonials(Array.isArray(testData) ? testData : []);
       setMessages(Array.isArray(msgData) ? msgData : []);
-      setClientGalleries(Array.isArray(clientData) ? clientData : DEFAULT_CLIENT_GALLERIES);
+      setClientGalleries(Array.isArray(clientData) ? clientData : []);
       if (settData) {
         setSiteSettings(settData);
         setSettingsForm({

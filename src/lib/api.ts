@@ -437,38 +437,29 @@ async function safeApiFetch<T = any>(url: string, options?: RequestInit): Promis
   }
 }
 
-// ── PERSISTENT DELETION BLACKLIST & LOCALSTORAGE HELPERS ────────────────────
+// ── LOCAL STORAGE CACHING & AUTO-PURGE LEGACY BLACKLISTS ───────────────────
 
-function getDeletedSet(key: string): Set<string> {
-  try {
-    const raw = localStorage.getItem(`fk_deleted_${key}`);
-    return raw ? new Set(JSON.parse(raw)) : new Set();
-  } catch {
-    return new Set();
+// Automatically purge legacy device-specific deletion blacklists so all accounts/devices
+// stay 100% synchronized with the authoritative cloud database.
+try {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    ['projects', 'categories', 'testimonials', 'client_galleries'].forEach((k) => {
+      localStorage.removeItem(`fk_deleted_${k}`);
+    });
   }
-}
-
-function markAsDeleted(key: string, idOrSlug: string): void {
-  try {
-    const s = getDeletedSet(key);
-    s.add(idOrSlug);
-    localStorage.setItem(`fk_deleted_${key}`, JSON.stringify(Array.from(s)));
-  } catch {
-    // ignore
-  }
+} catch {
+  // ignore
 }
 
 function getLocalStore<T>(key: string, defaultVal: T): T {
   try {
-    const deletedSet = getDeletedSet(key);
     const item = localStorage.getItem(`fk_store_${key}`);
-    let list: any = item ? JSON.parse(item) : defaultVal;
+    if (!item) return defaultVal;
+    let list: any = JSON.parse(item);
 
     if (Array.isArray(list)) {
       list = list.filter((x: any) => {
         if (!x) return false;
-        if (x.id && deletedSet.has(x.id)) return false;
-        if (x.slug && deletedSet.has(x.slug)) return false;
         if (key === 'projects' && x.title === "Cinematic Visual Story" && (x.location === "ccsd" || !x.thumbnail || x.thumbnail.includes("Cinematic"))) return false;
         return true;
       });
@@ -498,7 +489,6 @@ export async function fetchProjects(params?: {
   search?: string;
   sort_by?: string;
 }) {
-  const deletedSet = getDeletedSet('projects');
   const query = new URLSearchParams();
   if (params?.category && params.category !== 'All') query.append('category', params.category);
   if (params?.tag) query.append('tag', params.tag);
@@ -509,9 +499,7 @@ export async function fetchProjects(params?: {
 
   const data = await safeApiFetch<any[]>(`${API_BASE_URL}/projects?${query.toString()}`);
   if (Array.isArray(data)) {
-    const list = data
-      .filter((p: any) => !deletedSet.has(p.id) && !deletedSet.has(p.slug))
-      .map(cleanProjectData);
+    const list = data.map(cleanProjectData);
     setLocalStore('projects', list);
     return list;
   }
@@ -536,12 +524,9 @@ export async function fetchProjects(params?: {
 }
 
 export async function fetchAllProjectsCMS() {
-  const deletedSet = getDeletedSet('projects');
   const data = await safeApiFetch<any[]>(`${API_BASE_URL}/projects/all-cms`);
   if (Array.isArray(data)) {
-    const list = data
-      .filter((p: any) => !deletedSet.has(p.id) && !deletedSet.has(p.slug))
-      .map(cleanProjectData);
+    const list = data.map(cleanProjectData);
     setLocalStore('projects', list);
     return list;
   }
@@ -679,7 +664,7 @@ export async function updateProject(id: string, data: any) {
 }
 
 export async function deleteProject(id: string) {
-  markAsDeleted('projects', id);
+  // Delete from authoritative shared cloud database
   await safeApiFetch(`${API_BASE_URL}/projects/${id}`, { method: 'DELETE' });
 
   const all = getLocalStore('projects', DEFAULT_PROJECTS);
@@ -690,12 +675,10 @@ export async function deleteProject(id: string) {
 // ── CATEGORIES ─────────────────────────────────────────────────────────────
 
 export async function fetchCategories() {
-  const deletedSet = getDeletedSet('categories');
   const data = await safeApiFetch<any[]>(`${API_BASE_URL}/categories`);
   if (Array.isArray(data)) {
-    const list = data.filter((c: any) => !deletedSet.has(c.id) && !deletedSet.has(c.slug));
-    setLocalStore('categories', list);
-    return list;
+    setLocalStore('categories', data);
+    return data;
   }
   return getLocalStore('categories', DEFAULT_CATEGORIES);
 }
@@ -747,7 +730,6 @@ export async function updateCategory(id: string, data: any) {
 }
 
 export async function deleteCategory(id: string) {
-  markAsDeleted('categories', id);
   await safeApiFetch(`${API_BASE_URL}/categories/${id}`, { method: 'DELETE' });
 
   const all = getLocalStore('categories', DEFAULT_CATEGORIES);
@@ -758,12 +740,10 @@ export async function deleteCategory(id: string) {
 // ── TESTIMONIALS ───────────────────────────────────────────────────────────
 
 export async function fetchTestimonials() {
-  const deletedSet = getDeletedSet('testimonials');
   const data = await safeApiFetch<any[]>(`${API_BASE_URL}/testimonials`);
   if (Array.isArray(data)) {
-    const list = data.filter((t: any) => !deletedSet.has(t.id));
-    setLocalStore('testimonials', list);
-    return list;
+    setLocalStore('testimonials', data);
+    return data;
   }
   return getLocalStore('testimonials', DEFAULT_TESTIMONIALS);
 }
@@ -789,7 +769,6 @@ export async function createTestimonial(data: any) {
 }
 
 export async function deleteTestimonial(id: string) {
-  markAsDeleted('testimonials', id);
   await safeApiFetch(`${API_BASE_URL}/testimonials/${id}`, { method: 'DELETE' });
 
   const all = getLocalStore('testimonials', DEFAULT_TESTIMONIALS);
@@ -1086,17 +1065,14 @@ export async function uploadMultipleFiles(
 // ── CLIENT PROOFING & SECRET GALLERIES ─────────────────────────────────────
 
 export async function fetchClientGalleries(): Promise<any[]> {
-  const deletedSet = getDeletedSet('client_galleries');
   const data = await safeApiFetch<any[]>(`${API_BASE_URL}/client-galleries`);
   if (Array.isArray(data)) {
-    const list = data
-      .filter((g: any) => !deletedSet.has(g.id) && !deletedSet.has(g.slug))
-      .map((g: any) => ({
-        ...g,
-        coverImage: cleanMediaUrl(g.coverImage),
-        images: Array.isArray(g.images) ? g.images.map(cleanMediaUrl) : [],
-        selectedImages: Array.isArray(g.selectedImages) ? g.selectedImages.map(cleanMediaUrl) : []
-      }));
+    const list = data.map((g: any) => ({
+      ...g,
+      coverImage: cleanMediaUrl(g.coverImage),
+      images: Array.isArray(g.images) ? g.images.map(cleanMediaUrl) : [],
+      selectedImages: Array.isArray(g.selectedImages) ? g.selectedImages.map(cleanMediaUrl) : []
+    }));
     setLocalStore('client_galleries', list);
     return list;
   }
@@ -1152,7 +1128,6 @@ export async function updateClientGallery(id: string, data: any): Promise<any> {
 }
 
 export async function deleteClientGallery(id: string): Promise<any> {
-  markAsDeleted('client_galleries', id);
   await safeApiFetch(`${API_BASE_URL}/client-galleries/${id}`, { method: 'DELETE' });
 
   const all = getLocalStore('client_galleries', DEFAULT_CLIENT_GALLERIES);
