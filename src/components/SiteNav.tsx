@@ -5,7 +5,8 @@ import { QRCodeModal } from "./QRCodeModal";
 
 const links = [
   { to: "/", label: "Home" },
-  { to: "/portfolio", label: "Portfolio" },
+  { to: "/portfolio", label: "Gallery" },
+  { to: "/services", label: "Services & Pricing" },
   { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },
 ];

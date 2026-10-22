@@ -1,8 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { SiteLayout } from "@/components/SiteLayout";
 import { fetchProjects, toggleProjectLike } from "@/lib/api";
-import { Search, SlidersHorizontal, Eye, Sparkles, Image as ImageIcon, Folder, Camera, FolderDown, Heart, MessageSquare, QrCode } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  Eye,
+  Sparkles,
+  Image as ImageIcon,
+  Folder,
+  Camera,
+  FolderDown,
+  Heart,
+  MessageSquare,
+  QrCode,
+  Maximize2,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ArrowRight,
+  Download,
+  Film,
+  Play
+} from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
 
 const categories = [
@@ -12,9 +32,13 @@ const categories = [
   "Photo Editing",
   "Poster Design",
   "Thumbnail Design",
-  "Video Editing",
-  "Experiments"
+  "Video Editing"
 ];
+
+function isVideoUrl(url?: string): boolean {
+  if (!url) return false;
+  return /\.(mp4|webm|mov|ogg|m4v)(\?.*)?$/i.test(url);
+}
 
 export function PortfolioPage() {
   const [searchParams] = useSearchParams();
@@ -24,7 +48,7 @@ export function PortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [selectedQrProject, setSelectedQrProject] = useState<any | null>(null);
   const [isGlobalQrOpen, setIsGlobalQrOpen] = useState(false);
-  
+
   // Filters & Sorting state
   const [activeCategory, setActiveCategory] = useState(initialCat);
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,6 +57,10 @@ export function PortfolioPage() {
   const [sortBy, setSortBy] = useState("latest");
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [projectLikes, setProjectLikes] = useState<{ [id: string]: number }>({});
+
+  // Fullscreen Lightbox Modal state
+  const [lightboxProjectIndex, setLightboxProjectIndex] = useState<number | null>(null);
+  const [lightboxImageIndex, setLightboxImageIndex] = useState<number>(0);
 
   useEffect(() => {
     const cat = searchParams.get("category");
@@ -60,7 +88,7 @@ export function PortfolioPage() {
         // Check local storage for liked status
         const liked = new Set<string>();
         const likesMap: { [id: string]: number } = {};
-        data.forEach((p: any) => {
+        publicProjects.forEach((p: any) => {
           likesMap[p.id] = p.likes || 0;
           if (localStorage.getItem(`fk_liked_${p.id}`) === "true") {
             liked.add(p.id);
@@ -102,29 +130,90 @@ export function PortfolioPage() {
     }
   };
 
+  // Keyboard navigation for Lightbox
+  const handlePrevLightbox = useCallback(() => {
+    if (lightboxProjectIndex === null || projects.length === 0) return;
+    const currentProj = projects[lightboxProjectIndex];
+    const imageList = currentProj.images && currentProj.images.length > 0 ? currentProj.images : [currentProj.thumbnail];
+    
+    if (lightboxImageIndex > 0) {
+      setLightboxImageIndex(lightboxImageIndex - 1);
+    } else {
+      const prevProjIdx = (lightboxProjectIndex - 1 + projects.length) % projects.length;
+      setLightboxProjectIndex(prevProjIdx);
+      const prevProj = projects[prevProjIdx];
+      const prevImages = prevProj.images && prevProj.images.length > 0 ? prevProj.images : [prevProj.thumbnail];
+      setLightboxImageIndex(prevImages.length - 1);
+    }
+  }, [lightboxProjectIndex, lightboxImageIndex, projects]);
+
+  const handleNextLightbox = useCallback(() => {
+    if (lightboxProjectIndex === null || projects.length === 0) return;
+    const currentProj = projects[lightboxProjectIndex];
+    const imageList = currentProj.images && currentProj.images.length > 0 ? currentProj.images : [currentProj.thumbnail];
+
+    if (lightboxImageIndex < imageList.length - 1) {
+      setLightboxImageIndex(lightboxImageIndex + 1);
+    } else {
+      const nextProjIdx = (lightboxProjectIndex + 1) % projects.length;
+      setLightboxProjectIndex(nextProjIdx);
+      setLightboxImageIndex(0);
+    }
+  }, [lightboxProjectIndex, lightboxImageIndex, projects]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (lightboxProjectIndex === null) return;
+      if (e.key === "Escape") {
+        setLightboxProjectIndex(null);
+      } else if (e.key === "ArrowLeft") {
+        handlePrevLightbox();
+      } else if (e.key === "ArrowRight") {
+        handleNextLightbox();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxProjectIndex, handlePrevLightbox, handleNextLightbox]);
+
+  const activeLightboxProject = lightboxProjectIndex !== null ? projects[lightboxProjectIndex] : null;
+  const activeLightboxImages = activeLightboxProject
+    ? (activeLightboxProject.images && activeLightboxProject.images.length > 0
+        ? activeLightboxProject.images
+        : [activeLightboxProject.thumbnail])
+    : [];
+  const currentLightboxMedia = activeLightboxImages[lightboxImageIndex] || activeLightboxProject?.thumbnail || "";
+
   return (
     <SiteLayout>
-      <section className="max-w-7xl mx-auto px-4 py-8">
+      <section className="max-w-7xl mx-auto px-4 py-8 space-y-10 animate-fade-in">
         {/* Header */}
-        <div className="text-center mb-10">
-          <span className="text-xs font-semibold text-cyan-400 uppercase tracking-widest">Media Showcase</span>
-          <h1 className="text-4xl font-bold font-display mt-1">Creative <span className="gradient-text">Portfolio</span></h1>
-          <p className="text-slate-400 mt-2 text-sm max-w-lg mx-auto">
-            Browse through our collection of photography, digital concept art, color grading, and video edits.
+        <div className="text-center max-w-2xl mx-auto space-y-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-semibold">
+            <Sparkles className="size-3.5" />
+            <span>Katha Creative Showcase</span>
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-extrabold font-display text-white tracking-tight">
+            The Katha <span className="gradient-text">Gallery</span>
+          </h1>
+          <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+            Every frame tells a story. Explore our portfolio of photography, digital concept art, before/after color grading, minimalist posters, and cinematic 4K video edits.
           </p>
-          {/* Share Portfolio via QR Code */}
-          <button
-            onClick={() => setIsGlobalQrOpen(true)}
-            className="mt-4 inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-purple-600/30 to-cyan-500/30 border border-cyan-500/40 text-cyan-300 hover:from-purple-600/50 hover:to-cyan-500/50 hover:text-white text-xs font-semibold transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-            title="Share this Portfolio via QR Code"
-          >
-            <QrCode className="size-4" />
-            Share Portfolio via QR Code
-          </button>
+          <div className="flex justify-center gap-2 pt-1">
+            <button
+              onClick={() => setIsGlobalQrOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-semibold transition-all cursor-pointer shadow-sm"
+              title="Share this gallery via QR Code"
+            >
+              <QrCode className="size-3.5 text-cyan-400" />
+              <span>Share Gallery QR</span>
+            </button>
+          </div>
         </div>
 
         {/* Filter & Search Bar Controls */}
-        <div className="glass-strong rounded-3xl p-6 mb-10 border border-white/10 space-y-6">
+        <div className="glass-strong rounded-3xl p-6 border border-white/10 space-y-6 shadow-xl">
           {/* Category Filter Pills */}
           <div className="flex flex-nowrap sm:flex-wrap items-center justify-start sm:justify-center gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
             {categories.map((cat) => (
@@ -203,13 +292,19 @@ export function PortfolioPage() {
           </div>
         ) : projects.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((p) => (
-              <Link
+            {projects.map((p, pIndex) => (
+              <div
                 key={p.id}
-                to={`/portfolio/${p.slug}`}
-                className="group glass-strong card-hover-effect rounded-3xl overflow-hidden border border-white/10 flex flex-col"
+                className="group glass-strong card-hover-effect rounded-3xl overflow-hidden border border-white/10 flex flex-col justify-between"
               >
-                <div className="aspect-4/3 overflow-hidden bg-slate-900 relative">
+                {/* Media Thumbnail with Fullscreen Lightbox Trigger */}
+                <div
+                  className="aspect-4/3 overflow-hidden bg-slate-900 relative cursor-pointer"
+                  onClick={() => {
+                    setLightboxProjectIndex(pIndex);
+                    setLightboxImageIndex(0);
+                  }}
+                >
                   <img
                     src={p.thumbnail || "https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800"}
                     alt={p.title}
@@ -220,108 +315,75 @@ export function PortfolioPage() {
                     }}
                     className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
                   />
+
+                  {/* Top Badges */}
                   <div className="absolute top-3 left-3 right-3 flex justify-between items-center gap-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="px-2.5 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-[10px] font-bold text-cyan-400 border border-cyan-500/30">
                         {p.category}
                       </span>
-                      {p.folderName && (
-                        <span className="px-2.5 py-0.5 rounded-full bg-purple-950/85 backdrop-blur-md text-[10px] font-semibold text-purple-200 border border-purple-500/40 flex items-center gap-1">
-                          <Folder className="size-2.5 text-purple-400" />
-                          <span className="truncate max-w-[120px]">{p.folderName}</span>
-                        </span>
-                      )}
-                      {p.photoTitle && (
-                        <span className="px-2.5 py-0.5 rounded-full bg-cyan-950/85 backdrop-blur-md text-[10px] font-semibold text-cyan-200 border border-cyan-500/40 flex items-center gap-1">
-                          <Camera className="size-2.5 text-cyan-400" />
-                          <span className="truncate max-w-[120px]">{p.photoTitle}</span>
-                        </span>
-                      )}
                       {p.beforeImage && (
                         <span className="px-2 py-0.5 rounded-full bg-purple-600/80 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1">
                           <SlidersHorizontal className="size-2.5" /> Edit
                         </span>
                       )}
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {p.images && p.images.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const link = document.createElement("a");
-                            link.href = `/api/projects/${p.slug || p.id}/download-zip`;
-                            link.setAttribute("download", `${p.folderName || p.title || "folder"}.zip`);
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
-                          className="px-2 py-0.5 rounded-full bg-emerald-500/20 hover:bg-emerald-500 hover:text-black text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-bold transition-all flex items-center gap-1 cursor-pointer"
-                          title="Download entire folder as a ZIP file"
-                        >
-                          <FolderDown className="size-2.5" />
-                          <span>ZIP</span>
-                        </button>
+                      {p.video && (
+                        <span className="px-2 py-0.5 rounded-full bg-pink-600/80 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1">
+                          <Film className="size-2.5" /> Video
+                        </span>
                       )}
-                      <span className="px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-[10px] font-mono text-cyan-300 border border-cyan-500/30">
-                        📁 {p.images?.length || 1}
-                      </span>
                     </div>
+                    <span className="px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-[10px] font-mono text-cyan-300 border border-cyan-500/30 shrink-0">
+                      📁 {p.images?.length || 1}
+                    </span>
                   </div>
 
+                  {/* Hover Overlay with Lightbox Trigger */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6 flex flex-col justify-end">
                     <span className="text-xs text-slate-300 font-semibold">{p.year} • {p.location || 'Studio'}</span>
                     <h3 className="text-lg font-bold text-white mt-1">{p.title}</h3>
-                    {p.photoTitle && p.photoTitle !== p.title && (
-                      <span className="text-xs text-cyan-300 font-medium flex items-center gap-1 mt-0.5">
-                        <Camera className="size-3 text-cyan-400 shrink-0" /> Photo: {p.photoTitle}
+                    <div className="flex items-center justify-between text-xs text-cyan-400 mt-2">
+                      <span className="flex items-center gap-1">
+                        <Eye className="size-3.5" /> {p.views} Views
                       </span>
-                    )}
-                    <div className="flex items-center gap-4 text-xs text-slate-300 mt-2">
-                      <span className="flex items-center gap-1 text-cyan-400 font-semibold"><Eye className="size-3.5" /> {p.views} Views</span>
-                      {p.camera && <span className="text-[11px]">📷 {p.camera}</span>}
+                      <span className="px-2.5 py-1 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold flex items-center gap-1">
+                        <Maximize2 className="size-3" /> Quick Lightbox
+                      </span>
                     </div>
                   </div>
                 </div>
 
+                {/* Card Content & Details */}
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-bold text-white text-base group-hover:text-cyan-400 transition-colors">{p.title}</h3>
-                    {p.photoTitle && p.photoTitle !== p.title && (
-                      <p className="text-xs text-cyan-400/90 font-medium flex items-center gap-1 mt-1">
-                        <Camera className="size-3 text-cyan-400 shrink-0" />
-                        <span className="truncate">Photo: {p.photoTitle}</span>
-                      </p>
-                    )}
-                    <p className="text-xs text-slate-400 mt-2 line-clamp-2">{p.description}</p>
+                    <Link
+                      to={`/portfolio/${p.slug}`}
+                      className="font-bold text-white text-base hover:text-cyan-400 transition-colors block"
+                    >
+                      {p.title}
+                    </Link>
+                    <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                      {p.description}
+                    </p>
                   </div>
 
+                  {/* Tags */}
                   <div className="mt-4 pt-3 border-t border-white/5 space-y-2">
                     <div className="flex flex-wrap gap-1">
-                      {p.tags.slice(0, 4).map((t: string) => (
+                      {p.tags.slice(0, 3).map((t: string) => (
                         <span key={t} className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-slate-300">
                           #{t}
                         </span>
                       ))}
                     </div>
-                    {p.tools && p.tools.length > 0 && (
-                      <div className="text-[11px] text-slate-500 font-mono truncate">
-                        Tools: {p.tools.join(", ")}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Card Engagement Bar: Likes, Comments, QR, Views */}
+                  {/* Actions Bar */}
                   <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleLikeProject(p.id);
-                        }}
+                        onClick={() => handleLikeProject(p.id)}
                         className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
                           likedIds.has(p.id)
                             ? "bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-sm"
@@ -333,22 +395,9 @@ export function PortfolioPage() {
                         <span>{projectLikes[p.id] ?? (p.likes || 0)}</span>
                       </button>
 
-                      <span
-                        className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-slate-300 flex items-center gap-1"
-                        title={`${p.comments?.length || 0} comments`}
-                      >
-                        <MessageSquare className="size-3 text-cyan-400" />
-                        <span>{p.comments?.length || 0}</span>
-                      </span>
-
-                      {/* QR Code Button per card */}
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setSelectedQrProject(p);
-                        }}
+                        onClick={() => setSelectedQrProject(p)}
                         className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/40 text-slate-400 hover:text-cyan-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
                         title="Get QR Code for this project"
                       >
@@ -357,18 +406,22 @@ export function PortfolioPage() {
                       </button>
                     </div>
 
-                    <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                      <Eye className="size-3 text-cyan-400" /> {p.views}
-                    </span>
+                    <Link
+                      to={`/portfolio/${p.slug}`}
+                      className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                    >
+                      <span>Story</span>
+                      <ArrowRight className="size-3.5" />
+                    </Link>
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         ) : (
           <div className="py-20 text-center glass-strong rounded-3xl border border-white/10 space-y-3">
             <ImageIcon className="size-10 mx-auto text-slate-500" />
-            <h3 className="text-lg font-bold text-white">No projects found</h3>
+            <h3 className="text-lg font-bold text-white">No projects found in this category</h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
               Try adjusting your search criteria, category filter, or resetting the filters.
             </p>
@@ -381,6 +434,105 @@ export function PortfolioPage() {
           </div>
         )}
       </section>
+
+      {/* ── Interactive Fullscreen Lightbox Modal (Keyboard & Touch Controlled) ── */}
+      {activeLightboxProject && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-6 animate-fade-in select-none"
+          onClick={() => setLightboxProjectIndex(null)}
+        >
+          {/* Top Bar */}
+          <div className="flex justify-between items-center z-10" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-mono font-bold text-cyan-400">
+                {activeLightboxImages.length > 1
+                  ? `Photo ${lightboxImageIndex + 1} of ${activeLightboxImages.length}`
+                  : activeLightboxProject.category}
+              </span>
+              <span className="text-xs text-white font-bold">{activeLightboxProject.title}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Link
+                to={`/portfolio/${activeLightboxProject.slug}`}
+                className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black border border-cyan-500/40 text-xs font-bold transition-all flex items-center gap-1.5"
+              >
+                <span>View Full Story</span>
+                <ArrowRight className="size-3.5" />
+              </Link>
+              <button
+                type="button"
+                onClick={() => setLightboxProjectIndex(null)}
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+                title="Close Lightbox (Esc)"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Media Center Stage */}
+          <div
+            className="relative flex-1 flex items-center justify-center p-2 my-2 min-h-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Prev Button */}
+            <button
+              type="button"
+              onClick={handlePrevLightbox}
+              className="absolute left-2 sm:left-6 z-10 size-12 rounded-full bg-black/70 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl backdrop-blur-md"
+              title="Previous (Left Arrow)"
+            >
+              <ChevronLeft className="size-6" />
+            </button>
+
+            {/* Media Display */}
+            {isVideoUrl(currentLightboxMedia) || activeLightboxProject.video ? (
+              <video
+                key={currentLightboxMedia || activeLightboxProject.video}
+                src={currentLightboxMedia || activeLightboxProject.video}
+                controls
+                autoPlay
+                playsInline
+                preload="metadata"
+                className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl"
+              />
+            ) : (
+              <img
+                key={currentLightboxMedia}
+                src={currentLightboxMedia}
+                alt={activeLightboxProject.title}
+                className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl transition-all duration-300 animate-fade-in"
+              />
+            )}
+
+            {/* Next Button */}
+            <button
+              type="button"
+              onClick={handleNextLightbox}
+              className="absolute right-2 sm:right-6 z-10 size-12 rounded-full bg-black/70 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all grid place-items-center cursor-pointer shadow-2xl backdrop-blur-md"
+              title="Next (Right Arrow)"
+            >
+              <ChevronRight className="size-6" />
+            </button>
+          </div>
+
+          {/* Bottom Caption & Controls */}
+          <div
+            className="z-10 flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/10 text-xs text-slate-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="line-clamp-1 text-center sm:text-left">
+              {activeLightboxProject.description}
+            </p>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
+                Use Left / Right Arrows to Navigate • Esc to Close
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Global Portfolio QR Modal ── */}
       <QRCodeModal

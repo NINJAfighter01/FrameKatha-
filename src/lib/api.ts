@@ -223,15 +223,43 @@ export const DEFAULT_PROJECTS: any[] = [
     afterImage: "",
     createdAt: "2026-02-01T16:00:00Z",
     updatedAt: "2026-02-01T16:00:00Z"
+  },
+  {
+    id: "proj-7",
+    title: "Cinematic Visual Showreel 4K",
+    slug: "cinematic-visual-showreel-4k",
+    description: "4K 60FPS cinematic montage exploring urban nocturnal lighting, dynamic camera motion, DaVinci Resolve color grading, and atmospheric sound design.",
+    category: "Video Editing",
+    subcategory: "Showreel & Montage",
+    images: [
+      "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=1200"
+    ],
+    video: "/videos/reel-1.mp4",
+    thumbnail: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800",
+    tags: ["Video Editing", "4K", "Cinematic", "Color Grading", "Sound Design", "Showreel"],
+    tools: ["Premiere Pro", "DaVinci Resolve", "After Effects"],
+    camera: "Sony FX3",
+    lens: "Sony FE 24-70mm f/2.8 GM II",
+    editingSoftware: "DaVinci Resolve Studio & Premiere Pro",
+    year: 2026,
+    location: "Studio Production",
+    featured: true,
+    published: true,
+    views: 218,
+    beforeImage: "",
+    afterImage: "",
+    createdAt: "2026-03-01T10:00:00Z",
+    updatedAt: "2026-03-01T10:00:00Z"
   }
 ];
 
 export const DEFAULT_CATEGORIES: any[] = [
-  { id: "cat-1", name: "Photography", slug: "photography", count: 2 },
-  { id: "cat-2", name: "Photo Editing", slug: "photo-editing", count: 1 },
-  { id: "cat-3", name: "Digital Art", slug: "digital-art", count: 1 },
+  { id: "cat-1", name: "Photography", slug: "photography", count: 3 },
+  { id: "cat-2", name: "Digital Art", slug: "digital-art", count: 1 },
+  { id: "cat-3", name: "Photo Editing", slug: "photo-editing", count: 1 },
   { id: "cat-4", name: "Poster Design", slug: "poster-design", count: 1 },
-  { id: "cat-5", name: "Thumbnail Design", slug: "thumbnail-design", count: 1 }
+  { id: "cat-5", name: "Thumbnail Design", slug: "thumbnail-design", count: 1 },
+  { id: "cat-6", name: "Video Editing", slug: "video-editing", count: 1 }
 ];
 
 export const DEFAULT_TESTIMONIALS: any[] = [

@@ -325,6 +325,25 @@ export function ShowcaseVideoSection({
               muted={isMuted}
               playsInline
               preload="auto"
+              onClick={togglePlay}
+              onCanPlay={(e) => {
+                const v = e.target as HTMLVideoElement;
+                v.muted = true;
+                v.play().then(() => setIsPlaying(true)).catch(() => {});
+              }}
+              onLoadedData={(e) => {
+                const v = e.target as HTMLVideoElement;
+                v.muted = true;
+                v.play().then(() => setIsPlaying(true)).catch(() => {});
+              }}
+              onError={(e) => {
+                const v = e.target as HTMLVideoElement;
+                console.warn("Video failed to play, falling back to local reel-1.mp4");
+                if (!v.src.endsWith("/videos/reel-1.mp4")) {
+                  v.src = "/videos/reel-1.mp4";
+                  v.play().then(() => setIsPlaying(true)).catch(() => {});
+                }
+              }}
               onEnded={() => {
                 const v = videoRef.current;
                 if (v) {
@@ -332,7 +351,7 @@ export function ShowcaseVideoSection({
                   v.play().catch(() => {});
                 }
               }}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover cursor-pointer"
             />
           )}
 

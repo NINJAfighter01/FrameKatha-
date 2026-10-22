@@ -6,6 +6,8 @@ import { PortfolioPage } from '@/routes/portfolio';
 import { ProjectDetailPage } from '@/routes/project-detail';
 import { AboutPage } from '@/routes/about';
 import { ContactPage } from '@/routes/contact';
+import { ServicesPage } from '@/routes/services';
+import { PricingPage } from '@/routes/pricing';
 import { AdminPage } from '@/routes/admin';
 import { ClientPortalPage } from '@/routes/client-portal';
 import { NotFoundPage } from '@/routes/not-found';
@@ -59,6 +61,8 @@ function AppShell() {
       <Route path="/" element={<HomePage />} />
       <Route path="/portfolio" element={<PortfolioPage />} />
       <Route path="/portfolio/:slug" element={<ProjectDetailPage />} />
+      <Route path="/services" element={<ServicesPage />} />
+      <Route path="/pricing" element={<PricingPage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/client-portal" element={<ClientPortalPage />} />
