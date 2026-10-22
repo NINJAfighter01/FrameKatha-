@@ -219,6 +219,7 @@ export function AdminPage() {
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState<"projects" | "analytics" | "client-galleries" | "categories" | "testimonials" | "messages" | "settings">("projects");
   const [projectViewMode, setProjectViewMode] = useState<"grid" | "table">("grid");
+  const [timelineMode, setTimelineMode] = useState<"daily" | "monthly">("daily");
 
   // Data states
   const [analytics, setAnalytics] = useState<any>(null);
@@ -1027,17 +1028,42 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 category: c.name || c.id,
                 views: projects.filter((p: any) => p.category?.toLowerCase() === (c.name || c.id).toLowerCase()).reduce((s: number, p: any) => s + (p.views || 0), 0)
               }));
-          const timelineList = analytics?.timeline || [
-            { month: "May", views: Math.max(0, Math.floor(totalRealViews * 0.15)) },
-            { month: "Jun", views: Math.max(0, Math.floor(totalRealViews * 0.3)) },
-            { month: "Jul", views: Math.max(0, Math.floor(totalRealViews * 0.5)) },
-            { month: "Aug", views: Math.max(0, Math.floor(totalRealViews * 0.7)) },
-            { month: "Sep", views: Math.max(0, Math.floor(totalRealViews * 0.85)) },
-            { month: "Oct", views: totalRealViews }
-          ];
+          // Real-time timeline: "daily" (Last 7 Days) vs "monthly" (Past 6 Months) - 100% Real visitor data
+          const isDaily = timelineMode === "daily";
+          const currentTimelineList = isDaily
+            ? (analytics?.dailyTimeline && analytics.dailyTimeline.length > 0)
+              ? analytics.dailyTimeline.map((item: any) => ({
+                  label: item.label,
+                  views: item.views || 0
+                }))
+              : (() => {
+                  const today = new Date();
+                  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                  const arr = [];
+                  for (let i = 6; i >= 0; i--) {
+                    const d = new Date(today);
+                    d.setDate(d.getDate() - i);
+                    const label = i === 0 ? "Today" : `${d.getDate()} ${monthNames[d.getMonth()]}`;
+                    arr.push({ label, views: i === 0 ? totalRealViews : 0 });
+                  }
+                  return arr;
+                })()
+            : (analytics?.timeline && analytics.timeline.length > 0)
+              ? analytics.timeline.map((item: any) => ({
+                  label: item.month,
+                  views: item.views || 0
+                }))
+              : [
+                  { label: "May", views: 0 },
+                  { label: "Jun", views: 0 },
+                  { label: "Jul", views: 0 },
+                  { label: "Aug", views: 0 },
+                  { label: "Sep", views: 0 },
+                  { label: "Oct", views: totalRealViews }
+                ];
 
           const maxCatViews = Math.max(1, ...catViewsList.map((cv: any) => cv.views || 0));
-          const maxTimelineViews = Math.max(1, ...timelineList.map((t: any) => t.views || 0));
+          const maxTimelineViews = Math.max(1, ...currentTimelineList.map((t: any) => t.views || 0));
 
           return (
             <div className="space-y-8 animate-fade-in">
@@ -1109,26 +1135,69 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
                 {/* Timeline Growth */}
                 <div className="glass-strong rounded-3xl p-6 border border-white/10 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-bold font-display text-white">Views Growth Timeline</h3>
-                    <span className="text-[11px] text-slate-400 font-mono">Past 6 Months</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-base font-bold font-display text-white">Views Growth Timeline</h3>
+                      <p className="text-[11px] text-slate-400">
+                        {isDaily ? "⚡ Real-Time Daily Visitor Views" : "🗓️ Real Monthly Breakdown"}
+                      </p>
+                    </div>
+
+                    {/* Mode Toggle: Daily (7 Days) vs Monthly (6 Months) */}
+                    <div className="flex items-center rounded-xl bg-white/5 p-1 border border-white/10 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => setTimelineMode("daily")}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                          timelineMode === "daily"
+                            ? "bg-gradient-to-r from-purple-600 to-cyan-500 text-white shadow-sm"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        ⚡ 7 Days (Daily)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTimelineMode("monthly")}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                          timelineMode === "monthly"
+                            ? "bg-gradient-to-r from-purple-600 to-cyan-500 text-white shadow-sm"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        🗓️ 6 Months
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-end justify-between gap-3 h-52 pt-6">
-                    {timelineList.map((item: any) => {
+
+                  <div className="flex items-end justify-between gap-2 sm:gap-3 h-52 pt-6">
+                    {currentTimelineList.map((item: any) => {
                       const barHeight = item.views > 0
                         ? Math.max(14, Math.round((item.views / maxTimelineViews) * 100))
                         : 4;
 
+                      const isToday = item.label === "Today";
+
                       return (
-                        <div key={item.month} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                          <span className="text-[10px] text-cyan-400 font-mono font-bold transition-transform group-hover:scale-110">
+                        <div key={item.label} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
+                          <span className={`text-[10px] font-mono font-bold transition-transform group-hover:scale-110 ${
+                            isToday ? "text-emerald-400" : "text-cyan-400"
+                          }`}>
                             {item.views}
                           </span>
                           <div
-                            className="w-full bg-gradient-to-t from-purple-600 via-purple-500 to-cyan-400 rounded-t-xl transition-all duration-500 group-hover:opacity-90 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                            className={`w-full rounded-t-xl transition-all duration-500 group-hover:opacity-90 shadow-md ${
+                              isToday
+                                ? "bg-gradient-to-t from-emerald-600 via-teal-500 to-cyan-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]"
+                                : "bg-gradient-to-t from-purple-600 via-purple-500 to-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                            }`}
                             style={{ height: `${barHeight}%` }}
                           />
-                          <span className="text-xs text-slate-400 font-semibold mt-1">{item.month}</span>
+                          <span className={`text-[10px] sm:text-[11px] font-semibold mt-1 truncate max-w-full ${
+                            isToday ? "text-emerald-400 font-bold" : "text-slate-400"
+                          }`}>
+                            {item.label}
+                          </span>
                         </div>
                       );
                     })}

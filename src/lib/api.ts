@@ -1,4 +1,4 @@
-export const CLOUD_API_BASE = 'https://6ada0037fda6ddfef2354c67--framekatha-api-studio.netlify.app/api';
+export const CLOUD_API_BASE = 'https://6ada068326bb873c584903f2--framekatha-api-studio.netlify.app/api';
 
 export function getApiBaseUrl(): string {
   if (typeof window === 'undefined') return CLOUD_API_BASE;
@@ -19,13 +19,13 @@ export function cleanMediaUrl(url: any): string {
   if (typeof url !== 'string' || !url) return '';
   // If it's a relative /uploads/... from backend, route to the cloud media CDN
   if (url.startsWith('/uploads/')) {
-    return `https://6ada0037fda6ddfef2354c67--framekatha-api-studio.netlify.app/api${url}`;
+    return `https://6ada068326bb873c584903f2--framekatha-api-studio.netlify.app/api${url}`;
   }
   return url
-    .replace(/^https?:\/\/localhost:\d+\/uploads/i, 'https://6ada0037fda6ddfef2354c67--framekatha-api-studio.netlify.app/api/uploads')
-    .replace(/^https?:\/\/127\.0\.0\.1:\d+\/uploads/i, 'https://6ada0037fda6ddfef2354c67--framekatha-api-studio.netlify.app/api/uploads')
-    .replace(/^https?:\/\/0\.0\.0\.0:\d+\/uploads/i, 'https://6ada0037fda6ddfef2354c67--framekatha-api-studio.netlify.app/api/uploads')
-    .replace(/^https?:\/\/6ad9d5d7ca6f1faa487c83cb--framekatha-api-studio\.netlify\.app\/api\/uploads/i, 'https://6ada0037fda6ddfef2354c67--framekatha-api-studio.netlify.app/api/uploads')
+    .replace(/^https?:\/\/localhost:\d+\/uploads/i, 'https://6ada068326bb873c584903f2--framekatha-api-studio.netlify.app/api/uploads')
+    .replace(/^https?:\/\/127\.0\.0\.1:\d+\/uploads/i, 'https://6ada068326bb873c584903f2--framekatha-api-studio.netlify.app/api/uploads')
+    .replace(/^https?:\/\/0\.0\.0\.0:\d+\/uploads/i, 'https://6ada068326bb873c584903f2--framekatha-api-studio.netlify.app/api/uploads')
+    .replace(/^https?:\/\/6ada0037fda6ddfef2354c67--framekatha-api-studio\.netlify\.app\/api\/uploads/i, 'https://6ada068326bb873c584903f2--framekatha-api-studio.netlify.app/api/uploads')
     .replace(/^https?:\/\/localhost:\d+/i, '')
     .replace(/^https?:\/\/127\.0\.0\.1:\d+/i, '')
     .replace(/^https?:\/\/0\.0\.0\.0:\d+/i, '');
@@ -832,6 +832,29 @@ export async function fetchAnalytics() {
     return { category: c.name, views };
   });
 
+  const now = new Date();
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthlyTimeline = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthlyTimeline.push({
+      month: monthNames[d.getMonth()],
+      views: i === 0 ? totalViews : 0
+    });
+  }
+
+  const dailyTimeline = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const label = i === 0 ? "Today" : `${d.getDate()} ${monthNames[d.getMonth()]}`;
+    dailyTimeline.push({
+      label,
+      date: d.toISOString().slice(0, 10),
+      views: i === 0 ? totalViews : 0
+    });
+  }
+
   return {
     overview: {
       totalProjects: projects.length,
@@ -844,14 +867,8 @@ export async function fetchAnalytics() {
       }
     },
     categoryViews: categoryViews,
-    timeline: [
-      { month: "May", views: Math.max(0, Math.floor(totalViews * 0.15)) },
-      { month: "Jun", views: Math.max(0, Math.floor(totalViews * 0.3)) },
-      { month: "Jul", views: Math.max(0, Math.floor(totalViews * 0.5)) },
-      { month: "Aug", views: Math.max(0, Math.floor(totalViews * 0.7)) },
-      { month: "Sep", views: Math.max(0, Math.floor(totalViews * 0.85)) },
-      { month: "Oct", views: totalViews }
-    ],
+    timeline: monthlyTimeline,
+    dailyTimeline,
     devices: [
       { name: "Desktop / Laptop", percentage: 55 },
       { name: "Mobile Devices", percentage: 40 },
