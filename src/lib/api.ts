@@ -1,30 +1,30 @@
-export const CLOUD_API_BASE = 'https://framekatha.netlify.app/api';
+export const CLOUD_API_BASE = 'https://6ad9d5d7ca6f1faa487c83cb--framekatha-api-studio.netlify.app/api';
 
 export function getApiBaseUrl(): string {
   if (typeof window === 'undefined') return CLOUD_API_BASE;
-  // If running directly on framekatha.netlify.app, same-origin /api is direct
-  if (window.location.origin.includes('netlify.app')) {
+  // If running directly on the backend host, use relative /api
+  if (window.location.origin.includes('framekatha-api-studio.netlify.app')) {
     return '/api';
   }
-  // If deployed to Surge (framekatha-studio.surge.sh), GitHub Pages, or any client device (phone/tablet),
-  // connect to the 24/7 cloud database backend
+  // Connect all client devices (phones, laptops, desktops, tablets) and Surge deployments
+  // to the 24/7 authoritative shared cloud database
   return CLOUD_API_BASE;
 }
 
-export const API_BASE_URL = typeof window !== 'undefined' && window.location.origin.includes('netlify.app')
+export const API_BASE_URL = typeof window !== 'undefined' && window.location.origin.includes('framekatha-api-studio.netlify.app')
   ? '/api'
-  : 'https://framekatha.netlify.app/api';
+  : CLOUD_API_BASE;
 
 export function cleanMediaUrl(url: any): string {
   if (typeof url !== 'string' || !url) return '';
   // If it's a relative /uploads/... from backend, route to the cloud media CDN
   if (url.startsWith('/uploads/')) {
-    return `https://framekatha.netlify.app/api${url}`;
+    return `https://6ad9d5d7ca6f1faa487c83cb--framekatha-api-studio.netlify.app/api${url}`;
   }
   return url
-    .replace(/^https?:\/\/localhost:\d+\/uploads/i, 'https://framekatha.netlify.app/api/uploads')
-    .replace(/^https?:\/\/127\.0\.0\.1:\d+\/uploads/i, 'https://framekatha.netlify.app/api/uploads')
-    .replace(/^https?:\/\/0\.0\.0\.0:\d+\/uploads/i, 'https://framekatha.netlify.app/api/uploads')
+    .replace(/^https?:\/\/localhost:\d+\/uploads/i, 'https://6ad9d5d7ca6f1faa487c83cb--framekatha-api-studio.netlify.app/api/uploads')
+    .replace(/^https?:\/\/127\.0\.0\.1:\d+\/uploads/i, 'https://6ad9d5d7ca6f1faa487c83cb--framekatha-api-studio.netlify.app/api/uploads')
+    .replace(/^https?:\/\/0\.0\.0\.0:\d+\/uploads/i, 'https://6ad9d5d7ca6f1faa487c83cb--framekatha-api-studio.netlify.app/api/uploads')
     .replace(/^https?:\/\/localhost:\d+/i, '')
     .replace(/^https?:\/\/127\.0\.0\.1:\d+/i, '')
     .replace(/^https?:\/\/0\.0\.0\.0:\d+/i, '');
