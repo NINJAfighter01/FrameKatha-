@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { Menu, X, QrCode } from "lucide-react";
+import { Menu, X, QrCode, Sparkles } from "lucide-react";
 import { QRCodeModal } from "./QRCodeModal";
 
 const links = [
@@ -92,6 +92,16 @@ export function SiteNav() {
               >
                 <QrCode className="size-4 text-cyan-400" /> Scan &amp; Share QR Code
               </button>
+
+              <div className="pt-3 border-t border-white/10 flex justify-center">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-300">
+                  <Sparkles className="size-3 text-cyan-400 animate-pulse" />
+                  <span>This website created by</span>
+                  <span className="font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                    Paras Aware
+                  </span>
+                </span>
+              </div>
             </div>
           )}
         </div>

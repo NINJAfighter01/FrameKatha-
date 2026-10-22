@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { SiteNav } from './SiteNav';
-import { MessageCircle, Mail, X, ArrowUp, Instagram, Github, Film } from 'lucide-react';
+import { MessageCircle, Mail, X, ArrowUp, Instagram, Github, Film, Sparkles } from 'lucide-react';
 import { siteConfig, getWhatsAppLink, getMailtoLink } from '@/config/site';
 
 export function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -202,14 +202,17 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Bottom Copyright & Credits */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-400 border-t border-white/5 pt-6 mt-6">
             <p>© {new Date().getFullYear()} FrameKatha Cinematic Studio. All rights reserved.</p>
-            <p className="flex items-center gap-1.5 font-medium text-slate-400">
-              <span>Crafted with passion by</span>
-              <span className="font-bold bg-gradient-to-r from-purple-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                {siteConfig.brand.creator}
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300 shadow-sm backdrop-blur-md">
+                <Sparkles className="size-3.5 text-cyan-400 animate-pulse" />
+                <span>This website created by</span>
+                <span className="font-bold text-sm bg-gradient-to-r from-purple-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+                  Paras Aware
+                </span>
               </span>
-            </p>
+            </div>
           </div>
         </div>
       </footer>

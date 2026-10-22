@@ -787,8 +787,8 @@ export function ProjectDetailPage() {
                   </div>
                 )}
 
-                {/* Active Highlight Photo View with Auto-Move Controls & Fullscreen Lightbox trigger */}
-                <div className="relative group glass-strong rounded-3xl overflow-hidden border border-cyan-500/30 shadow-2xl bg-slate-950/90 flex items-center justify-center min-h-[380px] max-h-[80vh] p-3">
+                {/* Active Highlight Photo View (Unobstructed — Zero Overlay Covering Image) */}
+                <div className="relative group glass-strong rounded-3xl overflow-hidden border border-cyan-500/30 shadow-2xl bg-slate-950/90 flex items-center justify-center min-h-[260px] sm:min-h-[420px] max-h-[75vh] p-2 sm:p-4">
                   {/* Previous Photo Arrow */}
                   {project.images.length > 1 && (
                     <button
@@ -797,10 +797,10 @@ export function ProjectDetailPage() {
                         e.stopPropagation();
                         handlePrevPhoto();
                       }}
-                      className="absolute left-3 sm:left-5 z-20 size-11 rounded-full bg-black/70 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all opacity-80 hover:opacity-100 flex items-center justify-center cursor-pointer shadow-2xl backdrop-blur-md"
+                      className="absolute left-2 sm:left-5 z-20 size-10 sm:size-12 rounded-full bg-black/75 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all opacity-80 hover:opacity-100 flex items-center justify-center cursor-pointer shadow-2xl backdrop-blur-md active:scale-95"
                       title="Previous Photo"
                     >
-                      <ChevronLeft className="size-5" />
+                      <ChevronLeft className="size-5 sm:size-6" />
                     </button>
                   )}
 
@@ -814,14 +814,14 @@ export function ProjectDetailPage() {
                       muted
                       playsInline
                       preload="metadata"
-                      className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl"
+                      className="max-h-[72vh] max-w-full object-contain rounded-2xl shadow-2xl"
                     />
                   ) : (
                     <img
                       key={activeMedia || project.images[0]}
                       src={activeMedia || project.images[0]}
                       alt={project.title}
-                      className="max-h-[75vh] max-w-full object-contain rounded-2xl cursor-pointer transition-all duration-300 hover:scale-[1.01] animate-fade-in"
+                      className="max-h-[72vh] max-w-full object-contain rounded-2xl cursor-pointer transition-all duration-300 hover:scale-[1.01] animate-fade-in"
                       onClick={() => {
                         const idx = project.images.indexOf(activeMedia || project.images[0]);
                         setLightboxIndex(idx >= 0 ? idx : 0);
@@ -837,103 +837,12 @@ export function ProjectDetailPage() {
                         e.stopPropagation();
                         handleNextPhoto();
                       }}
-                      className="absolute right-3 sm:right-5 z-20 size-11 rounded-full bg-black/70 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all opacity-80 hover:opacity-100 flex items-center justify-center cursor-pointer shadow-2xl backdrop-blur-md"
+                      className="absolute right-2 sm:right-5 z-20 size-10 sm:size-12 rounded-full bg-black/75 hover:bg-cyan-500 hover:text-black text-white border border-white/20 transition-all opacity-80 hover:opacity-100 flex items-center justify-center cursor-pointer shadow-2xl backdrop-blur-md active:scale-95"
                       title="Next Photo"
                     >
-                      <ChevronRight className="size-5" />
+                      <ChevronRight className="size-5 sm:size-6" />
                     </button>
                   )}
-
-                  {/* Bottom Action Bar: Auto-Move Controls, Speed, Download and Lightbox */}
-                  <div
-                    className="absolute bottom-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-2.5 pointer-events-auto"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {/* Auto-Move Button & Speed Options */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => setIsAutoMoving(!isAutoMoving)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xl backdrop-blur-md border ${
-                          isAutoMoving
-                            ? "bg-emerald-500 hover:bg-emerald-400 text-black border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.6)]"
-                            : "bg-black/85 hover:bg-purple-600 text-white border-white/25 hover:border-purple-400"
-                        }`}
-                      >
-                        {isAutoMoving ? (
-                          <>
-                            <Pause className="size-3.5 fill-black" />
-                            <span>⏸️ Auto-Moving ({autoMoveSpeed / 1000}s)</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="size-3.5 fill-white" />
-                            <span>▶️ Auto-Move Photos (Play Slideshow)</span>
-                          </>
-                        )}
-                      </button>
-
-                      {/* Speed Pills */}
-                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/80 backdrop-blur-md border border-white/20 text-[11px] font-mono text-slate-300">
-                        <Clock className="size-3 text-cyan-400 hidden sm:inline" />
-                        <span className="text-[10px] text-slate-400 hidden sm:inline mr-1">Speed:</span>
-                        {[2000, 3000, 5000].map((s) => (
-                          <button
-                            key={s}
-                            type="button"
-                            onClick={() => setAutoMoveSpeed(s)}
-                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                              autoMoveSpeed === s
-                                ? "bg-cyan-500 text-black shadow-sm"
-                                : "hover:bg-white/15 text-slate-300 hover:text-white"
-                            }`}
-                          >
-                            {s / 1000}s
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 ml-auto flex-wrap">
-                      {/* Download Active Photo / Media Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const activeUrl = activeMedia || project.images[0];
-                          const isVid = isVideoUrl(activeUrl);
-                          const idx = project.images.indexOf(activeUrl) + 1;
-                          const baseName = project.folderName || project.slug || "media";
-                          const name = isVid ? `${baseName}_video_${idx}` : `${baseName}_photo_${idx}`;
-                          handleDownloadSingleMedia(activeUrl, name);
-                        }}
-                        disabled={downloadingFile === (activeMedia || project.images[0])}
-                        className="px-3.5 py-2 rounded-xl bg-black/85 hover:bg-emerald-500 hover:text-black text-emerald-300 text-xs font-bold backdrop-blur-md border border-emerald-500/40 transition-all flex items-center gap-1.5 shadow-xl cursor-pointer"
-                        title={isVideoUrl(activeMedia || project.images[0]) ? "Download this video (MP4)" : "Download this photo in high quality"}
-                      >
-                        <Download className={`size-3.5 ${downloadingFile === (activeMedia || project.images[0]) ? "animate-bounce" : ""}`} />
-                        <span>
-                          {downloadingFile === (activeMedia || project.images[0])
-                            ? "Downloading..."
-                            : isVideoUrl(activeMedia || project.images[0])
-                            ? "Download Video (MP4)"
-                            : "Download Photo (HD)"}
-                        </span>
-                      </button>
-
-                      {/* View Fullscreen Lightbox Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const idx = project.images.indexOf(activeMedia || project.images[0]);
-                          setLightboxIndex(idx >= 0 ? idx : 0);
-                        }}
-                        className="px-4 py-2 rounded-xl bg-black/85 hover:bg-cyan-500 hover:text-black text-cyan-300 text-xs font-bold backdrop-blur-md border border-cyan-500/40 transition-all flex items-center gap-1.5 shadow-xl cursor-pointer"
-                      >
-                        <Maximize2 className="size-3.5" />
-                        <span>View Fullscreen Lightbox</span>
-                      </button>
-                    </div>
-                  </div>
 
                   {/* Auto-Move Slideshow Glowing Progress Line */}
                   {isAutoMoving && (
@@ -947,6 +856,97 @@ export function ProjectDetailPage() {
                       />
                     </div>
                   )}
+                </div>
+
+                {/* Dedicated Photo Action Bar (Placed BELOW photo — never covers image!) */}
+                <div
+                  className="glass-strong rounded-2xl p-3 sm:p-4 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl bg-[#0e0e16]/80 backdrop-blur-md"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Auto-Move Button & Speed Options */}
+                  <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-between sm:justify-start">
+                    <button
+                      type="button"
+                      onClick={() => setIsAutoMoving(!isAutoMoving)}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-md active:scale-95 border ${
+                        isAutoMoving
+                          ? "bg-emerald-500 hover:bg-emerald-400 text-black border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.6)]"
+                          : "bg-white/5 hover:bg-purple-600 text-white border-white/15 hover:border-purple-400"
+                      }`}
+                    >
+                      {isAutoMoving ? (
+                        <>
+                          <Pause className="size-3.5 fill-black" />
+                          <span>⏸️ Auto-Moving ({autoMoveSpeed / 1000}s)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="size-3.5 fill-white" />
+                          <span>▶️ Auto-Move (Slideshow)</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Speed Pills */}
+                    <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[11px] font-mono text-slate-300">
+                      <Clock className="size-3 text-cyan-400" />
+                      <span className="text-[10px] text-slate-400 mr-1 hidden xs:inline">Speed:</span>
+                      {[2000, 3000, 5000].map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setAutoMoveSpeed(s)}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                            autoMoveSpeed === s
+                              ? "bg-cyan-500 text-black shadow-sm"
+                              : "hover:bg-white/15 text-slate-300 hover:text-white"
+                          }`}
+                        >
+                          {s / 1000}s
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    {/* Download Active Photo / Media Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const activeUrl = activeMedia || project.images[0];
+                        const isVid = isVideoUrl(activeUrl);
+                        const idx = project.images.indexOf(activeUrl) + 1;
+                        const baseName = project.folderName || project.slug || "media";
+                        const name = isVid ? `${baseName}_video_${idx}` : `${baseName}_photo_${idx}`;
+                        handleDownloadSingleMedia(activeUrl, name);
+                      }}
+                      disabled={downloadingFile === (activeMedia || project.images[0])}
+                      className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-white/5 hover:bg-emerald-500 hover:text-black text-emerald-300 text-xs font-bold border border-emerald-500/30 transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-95"
+                      title={isVideoUrl(activeMedia || project.images[0]) ? "Download this video (MP4)" : "Download this photo in high quality"}
+                    >
+                      <Download className={`size-3.5 ${downloadingFile === (activeMedia || project.images[0]) ? "animate-bounce" : ""}`} />
+                      <span>
+                        {downloadingFile === (activeMedia || project.images[0])
+                          ? "Downloading..."
+                          : isVideoUrl(activeMedia || project.images[0])
+                          ? "Download Video"
+                          : "Download HD"}
+                      </span>
+                    </button>
+
+                    {/* View Fullscreen Lightbox Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const idx = project.images.indexOf(activeMedia || project.images[0]);
+                        setLightboxIndex(idx >= 0 ? idx : 0);
+                      }}
+                      className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600/80 to-cyan-600/80 hover:from-purple-500 hover:to-cyan-400 text-white text-xs font-bold border border-white/15 transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-95"
+                    >
+                      <Maximize2 className="size-3.5" />
+                      <span>Fullscreen</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Folder Collection Grid Card */}
