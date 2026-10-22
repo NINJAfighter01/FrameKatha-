@@ -4,6 +4,7 @@ import { useParams, useSearchParams, Link } from "react-router-dom";
 import { SiteLayout } from "@/components/SiteLayout";
 import { BeforeAfterSlider } from "@/components/BeforeAfterSlider";
 import { fetchProjectBySlug, fetchProjects, incrementProjectViews, toggleProjectLike, addProjectComment, deleteProjectComment } from "@/lib/api";
+import { downloadFilesAsZip } from "@/lib/zip-download";
 import {
   Camera,
   Calendar,
@@ -145,17 +146,31 @@ export function ProjectDetailPage() {
     }
   };
 
-  const handleDownloadFolderZip = () => {
+  const handleDownloadFolderZip = async () => {
     if (!project) return;
+    const mediaList = Array.isArray(project.images) && project.images.length > 0
+      ? project.images
+      : [project.thumbnail || project.afterImage || project.beforeImage].filter(Boolean);
+
+    if (mediaList.length === 0) {
+      alert("No media files found to download.");
+      return;
+    }
+
     setDownloadingZip(true);
-    const downloadUrl = `/api/projects/${project.slug || project.id}/download-zip`;
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.setAttribute("download", `${project.folderName || project.title || "media_folder"}.zip`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => setDownloadingZip(false), 2000);
+    try {
+      const baseName = project.folderName || project.slug || project.title || "media_folder";
+      const cleanName = baseName.replace(/[^a-zA-Z0-9_-]/g, "_");
+      await downloadFilesAsZip({
+        urls: mediaList,
+        zipFileName: `${cleanName}_full_collection`
+      });
+    } catch (err: any) {
+      console.error("Folder ZIP creation error:", err);
+      alert(`Could not create ZIP: ${err.message || "Network error"}`);
+    } finally {
+      setDownloadingZip(false);
+    }
   };
 
   const handleDownloadSingleMedia = async (url: string, suggestedFilename?: string) => {

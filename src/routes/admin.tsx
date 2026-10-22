@@ -34,6 +34,7 @@ import {
   DEFAULT_SETTINGS,
   DEFAULT_CLIENT_GALLERIES
 } from "@/lib/api";
+import { downloadFilesAsZip } from "@/lib/zip-download";
 import {
   BarChart3,
   FolderPlus,
@@ -233,6 +234,26 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [showAddGallery, setShowAddGallery] = useState(false);
   const [editingGalleryId, setEditingGalleryId] = useState<string | null>(null);
   const [selectedFeedbackGallery, setSelectedFeedbackGallery] = useState<any | null>(null);
+  const [downloadingAdminZip, setDownloadingAdminZip] = useState(false);
+
+  const handleDownloadAdminZip = async (gal: any) => {
+    if (!gal || !gal.selectedImages || gal.selectedImages.length === 0) {
+      alert("No selected photos found in this client gallery.");
+      return;
+    }
+    setDownloadingAdminZip(true);
+    try {
+      const cleanName = (gal.slug || gal.clientName || "client_selections").replace(/[^a-zA-Z0-9_-]/g, "_");
+      await downloadFilesAsZip({
+        urls: gal.selectedImages,
+        zipFileName: `${cleanName}_selected_album_photos`
+      });
+    } catch (err: any) {
+      alert(`Could not create ZIP: ${err.message || "Network error"}`);
+    } finally {
+      setDownloadingAdminZip(false);
+    }
+  };
   const [selectedQrGallery, setSelectedQrGallery] = useState<any | null>(null);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
@@ -2600,13 +2621,15 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs text-slate-300">
                       <span className="font-bold text-white">Selected Photos ({selectedFeedbackGallery.selectedImages?.length || 0}):</span>
-                      <a
-                        href={`/api/client-galleries/${selectedFeedbackGallery.slug}/download-zip?mode=selected`}
-                        className="px-3.5 py-1.5 rounded-xl bg-pink-600/30 hover:bg-pink-600 text-pink-200 text-xs font-bold flex items-center gap-1.5 border border-pink-500/40 transition-all"
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadAdminZip(selectedFeedbackGallery)}
+                        disabled={downloadingAdminZip}
+                        className="px-3.5 py-1.5 rounded-xl bg-pink-600/30 hover:bg-pink-600 text-pink-200 text-xs font-bold flex items-center gap-1.5 border border-pink-500/40 transition-all cursor-pointer disabled:opacity-50"
                       >
-                        <FolderDown className="size-3.5" />
-                        <span>Download Selected ZIP</span>
-                      </a>
+                        <FolderDown className={`size-3.5 ${downloadingAdminZip ? "animate-bounce" : ""}`} />
+                        <span>{downloadingAdminZip ? "Creating ZIP..." : "Download Selected ZIP"}</span>
+                      </button>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

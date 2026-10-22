@@ -9,6 +9,7 @@ import {
   submitClientFeedback,
   cleanMediaUrl
 } from "@/lib/api";
+import { downloadFilesAsZip } from "@/lib/zip-download";
 import {
   Lock,
   Unlock,
@@ -52,6 +53,44 @@ export function ClientPortalPage() {
 
   // Full-screen Lightbox
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Real-time ZIP Download State
+  const [downloadingZip, setDownloadingZip] = useState(false);
+  const [downloadingZipMode, setDownloadingZipMode] = useState<"all" | "selected" | null>(null);
+  const [zipProgressText, setZipProgressText] = useState("");
+
+  const handleDownloadZip = async (mode: "all" | "selected") => {
+    if (!gallery) return;
+    const targetUrls = mode === "selected" ? selectedImages : (gallery.images || []);
+    if (!targetUrls || targetUrls.length === 0) {
+      alert("No photos selected to download.");
+      return;
+    }
+
+    setDownloadingZip(true);
+    setDownloadingZipMode(mode);
+    setZipProgressText(`Preparing ZIP (0/${targetUrls.length})...`);
+
+    try {
+      const baseTitle = gallery.slug || gallery.eventTitle || "client_album";
+      const cleanBase = baseTitle.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const zipName = mode === "selected" ? `${cleanBase}_selected_photos` : `${cleanBase}_all_photos`;
+      await downloadFilesAsZip({
+        urls: targetUrls,
+        zipFileName: zipName,
+        onProgress: (current, total) => {
+          setZipProgressText(`Zipping (${current}/${total})...`);
+        }
+      });
+    } catch (err: any) {
+      console.error("ZIP creation error:", err);
+      alert(`Could not create ZIP: ${err.message || "Network error"}`);
+    } finally {
+      setDownloadingZip(false);
+      setDownloadingZipMode(null);
+      setZipProgressText("");
+    }
+  };
 
   // Check if session has stored unlocked key
   useEffect(() => {
@@ -289,14 +328,16 @@ export function ClientPortalPage() {
           {/* Top Actions: Download & Submit */}
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             {gallery.allowDownload && (
-              <a
-                href={`/api/client-galleries/${gallery.slug}/download-zip?mode=all`}
-                className="flex-1 md:flex-none px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 transition-all flex items-center justify-center gap-2"
+              <button
+                type="button"
+                onClick={() => handleDownloadZip("all")}
+                disabled={downloadingZip}
+                className="flex-1 md:flex-none px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 title="Download all original photos as a ZIP file"
               >
-                <FolderDown className="size-4 text-cyan-400" />
-                <span>Download All ({gallery.images?.length || 0})</span>
-              </a>
+                <FolderDown className={`size-4 text-cyan-400 ${downloadingZip && downloadingZipMode === "all" ? "animate-bounce" : ""}`} />
+                <span>{downloadingZipMode === "all" ? zipProgressText : `Download All (${gallery.images?.length || 0})`}</span>
+              </button>
             )}
 
             <button
@@ -454,14 +495,25 @@ export function ClientPortalPage() {
 
           <div className="flex items-center gap-2">
             {gallery.allowDownload && selectedImages.length > 0 && (
-              <a
-                href={`/api/client-galleries/${gallery.slug}/download-zip?mode=selected`}
-                className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 transition-all flex items-center gap-1.5"
+              <button
+                type="button"
+                onClick={() => handleDownloadZip("selected")}
+                disabled={downloadingZip}
+                className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-bold border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 title="Download selected photos as ZIP"
               >
-                <Download className="size-3.5 text-cyan-400" />
-                <span className="hidden sm:inline">Download Selected ZIP</span>
-              </a>
+                <Download className={`size-3.5 text-cyan-400 ${downloadingZip && downloadingZipMode === "selected" ? "animate-bounce" : ""}`} />
+                <span>
+                  {downloadingZipMode === "selected" ? (
+                    zipProgressText
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">Download Selected ZIP ({selectedImages.length})</span>
+                      <span className="sm:hidden">ZIP ({selectedImages.length})</span>
+                    </>
+                  )}
+                </span>
+              </button>
             )}
 
             <button
