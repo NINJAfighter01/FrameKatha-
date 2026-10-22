@@ -615,6 +615,19 @@ export const SEED_DATA = {
         "subtitle": "Ultra-vibrant saturation profile with high framerate slow motion",
         "tag": "Macro Nature"
       }
-    ]
+    ],
+    "creativeLab": {
+      "enabled": true,
+      "badgeText": "FrameKatha Creative Lab",
+      "title": "RAW vs Graded Master",
+      "description": "Drag the interactive slider below to see how FrameKatha transforms flat RAW camera footage into high-contrast cinematic art.",
+      "beforeImage": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=80&sat=-100",
+      "afterImage": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=80",
+      "beforeLabel": "Flat RAW Profile",
+      "afterLabel": "Cinematic Teal & Orange Grade",
+      "footerNote": "Color graded using DaVinci Resolve & custom 3D LUTs",
+      "ctaText": "View Color Grading Works",
+      "ctaLink": "/portfolio?category=Photo%20Editing"
+    }
   }
 };

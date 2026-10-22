@@ -4,7 +4,7 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { ThreeCanvas } from "@/components/ThreeCanvas";
 import { BeforeAfterSlider } from "@/components/BeforeAfterSlider";
 import { ShowcaseVideoSection } from "@/components/ShowcaseVideoSection";
-import { fetchProjects, fetchTestimonials, fetchSiteSettings } from "@/lib/api";
+import { fetchProjects, fetchTestimonials, fetchSiteSettings, cleanMediaUrl } from "@/lib/api";
 import { siteConfig, getWhatsAppLink } from "@/config/site";
 import {
   Camera,
@@ -264,42 +264,44 @@ export function HomePage() {
       </section>
 
       {/* ── Section E: FrameKatha Creative Lab (Before/After Slider) ── */}
-      <section className="py-12 max-w-4xl mx-auto px-4 border-t border-white/10">
-        <div className="text-center mb-8 space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-400 text-xs font-semibold">
-            <Wand2 className="size-3.5" />
-            <span>FrameKatha Creative Lab</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-bold font-display text-white">
-            RAW vs <span className="gradient-text">Graded Master</span>
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-            Drag the interactive slider below to see how FrameKatha transforms flat RAW camera footage into high-contrast cinematic art.
-          </p>
-        </div>
-
-        <div className="glass-strong rounded-3xl p-3 sm:p-6 border border-white/10 shadow-2xl">
-          <BeforeAfterSlider
-            beforeImage="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=80&sat=-100"
-            afterImage="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=80"
-            beforeLabel="Flat RAW Profile"
-            afterLabel="Cinematic Teal & Orange Grade"
-          />
-          <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-white/10 text-xs">
-            <div className="flex items-center gap-2.5 text-slate-300 text-[11px]">
-              <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Color graded using DaVinci Resolve &amp; custom 3D LUTs</span>
+      {(siteSettings?.creativeLab?.enabled ?? true) && (
+        <section id="creative-lab" className="py-12 max-w-4xl mx-auto px-4 border-t border-white/10">
+          <div className="text-center mb-8 space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-400 text-xs font-semibold">
+              <Wand2 className="size-3.5" />
+              <span>{siteSettings?.creativeLab?.badgeText || "FrameKatha Creative Lab"}</span>
             </div>
-            <Link
-              to="/portfolio?category=Photo%20Editing"
-              className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold flex items-center gap-1.5 transition-all cursor-pointer border border-white/15 text-xs"
-            >
-              <span>View Color Grading Works</span>
-              <ArrowRight className="size-3" />
-            </Link>
+            <h2 className="text-2xl sm:text-3xl font-bold font-display text-white">
+              {siteSettings?.creativeLab?.title || "RAW vs Graded Master"}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+              {siteSettings?.creativeLab?.description || "Drag the interactive slider below to see how FrameKatha transforms flat RAW camera footage into high-contrast cinematic art."}
+            </p>
           </div>
-        </div>
-      </section>
+
+          <div className="glass-strong rounded-3xl p-3 sm:p-6 border border-white/10 shadow-2xl">
+            <BeforeAfterSlider
+              beforeImage={cleanMediaUrl(siteSettings?.creativeLab?.beforeImage || "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=80&sat=-100")}
+              afterImage={cleanMediaUrl(siteSettings?.creativeLab?.afterImage || "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=80")}
+              beforeLabel={siteSettings?.creativeLab?.beforeLabel || "Flat RAW Profile"}
+              afterLabel={siteSettings?.creativeLab?.afterLabel || "Cinematic Teal & Orange Grade"}
+            />
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-white/10 text-xs">
+              <div className="flex items-center gap-2.5 text-slate-300 text-[11px]">
+                <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{siteSettings?.creativeLab?.footerNote || "Color graded using DaVinci Resolve & custom 3D LUTs"}</span>
+              </div>
+              <Link
+                to={siteSettings?.creativeLab?.ctaLink || "/portfolio?category=Photo%20Editing"}
+                className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold flex items-center gap-1.5 transition-all cursor-pointer border border-white/15 text-xs"
+              >
+                <span>{siteSettings?.creativeLab?.ctaText || "View Color Grading Works"}</span>
+                <ArrowRight className="size-3" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Section F: Services & Starting Rates (Preview on Home) ── */}
       <section className="py-16 max-w-7xl mx-auto px-4 border-t border-white/10 space-y-10">

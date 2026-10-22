@@ -86,7 +86,9 @@ import {
   ArrowUp,
   ArrowDown,
   Tv,
-  MessageCircle
+  MessageCircle,
+  SlidersHorizontal,
+  Wand2
 } from "lucide-react";
 
 // ── Admin password ───────────────────────────────────────────────────────────
@@ -217,7 +219,7 @@ export function AdminPage() {
 }
 
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<"projects" | "analytics" | "client-galleries" | "categories" | "testimonials" | "messages" | "settings">("projects");
+  const [activeTab, setActiveTab] = useState<"projects" | "before-after" | "analytics" | "client-galleries" | "categories" | "testimonials" | "messages" | "settings">("projects");
   const [projectViewMode, setProjectViewMode] = useState<"grid" | "table">("grid");
   const [timelineMode, setTimelineMode] = useState<"daily" | "monthly">("daily");
 
@@ -455,7 +457,20 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         subtitle: "Ultra-vibrant saturation profile with high framerate slow motion",
         tag: "Macro Nature"
       }
-    ] as any[]
+    ] as any[],
+    creativeLab: {
+      enabled: true,
+      badgeText: "FrameKatha Creative Lab",
+      title: "RAW vs Graded Master",
+      description: "Drag the interactive slider below to see how FrameKatha transforms flat RAW camera footage into high-contrast cinematic art.",
+      beforeImage: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=80&sat=-100",
+      afterImage: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=80",
+      beforeLabel: "Flat RAW Profile",
+      afterLabel: "Cinematic Teal & Orange Grade",
+      footerNote: "Color graded using DaVinci Resolve & custom 3D LUTs",
+      ctaText: "View Color Grading Works",
+      ctaLink: "/portfolio?category=Photo%20Editing"
+    }
   });
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSavedSuccess, setSettingsSavedSuccess] = useState(false);
@@ -669,7 +684,20 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               subtitle: "Ultra-vibrant saturation profile with high framerate slow motion",
               tag: "Macro Nature"
             }
-          ]
+          ],
+          creativeLab: settData.creativeLab || {
+            enabled: true,
+            badgeText: "FrameKatha Creative Lab",
+            title: "RAW vs Graded Master",
+            description: "Drag the interactive slider below to see how FrameKatha transforms flat RAW camera footage into high-contrast cinematic art.",
+            beforeImage: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=80&sat=-100",
+            afterImage: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=80",
+            beforeLabel: "Flat RAW Profile",
+            afterLabel: "Cinematic Teal & Orange Grade",
+            footerNote: "Color graded using DaVinci Resolve & custom 3D LUTs",
+            ctaText: "View Color Grading Works",
+            ctaLink: "/portfolio?category=Photo%20Editing"
+          }
         });
       }
     } catch (e) {
@@ -716,6 +744,33 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       setTimeout(() => setSettingsSavedSuccess(false), 3000);
     } catch (err) {
       console.error("Failed to save settings:", err);
+      alert("Failed to save settings. Please try again.");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  // Update Creative Lab (Before & After Slider) in Settings
+  const updateCreativeLab = (patch: any) => {
+    setSettingsForm((prev: any) => ({
+      ...prev,
+      creativeLab: {
+        ...(prev.creativeLab || {}),
+        ...patch,
+      },
+    }));
+  };
+
+  const handleSaveCreativeLab = async () => {
+    setSavingSettings(true);
+    setSettingsSavedSuccess(false);
+    try {
+      const updated = await updateSiteSettings(settingsForm);
+      setSiteSettings(updated);
+      setSettingsSavedSuccess(true);
+      setTimeout(() => setSettingsSavedSuccess(false), 3000);
+    } catch (err) {
+      console.error("Failed to save creative lab settings:", err);
       alert("Failed to save settings. Please try again.");
     } finally {
       setSavingSettings(false);
@@ -989,6 +1044,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         <div className="flex flex-nowrap sm:flex-wrap items-center gap-2 border-b border-white/10 pb-4 overflow-x-auto no-scrollbar">
           {[
             { id: "projects", label: `📁 Projects & Albums (${projects.length})`, icon: FolderPlus },
+            { id: "before-after", label: "🌓 Before & After Slider", icon: SlidersHorizontal },
             { id: "analytics", label: "📊 Analytics & Views", icon: BarChart3 },
             { id: "client-galleries", label: `🔒 Client Albums (${clientGalleries.length})`, icon: ShieldCheck },
             { id: "categories", label: `🏷️ Categories (${categories.length})`, icon: Layers },
@@ -1207,6 +1263,372 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           );
         })()}
+
+        {/* TAB: BEFORE & AFTER SLIDER MANAGER */}
+        {activeTab === "before-after" && (
+          <div className="space-y-8 animate-fade-in">
+            {/* Top Header Card */}
+            <div className="glass-strong rounded-3xl p-6 sm:p-8 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
+              <div className="space-y-1.5">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-400 text-xs font-semibold">
+                  <Wand2 className="size-3.5" />
+                  <span>Homepage &amp; Portfolio Visual Comparisons</span>
+                </div>
+                <h3 className="text-2xl font-bold font-display text-white flex items-center gap-2">
+                  <span>🌓 Interactive Before &amp; After Slider Manager</span>
+                </h3>
+                <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                  Yaha se aap Homepage ke <strong>FrameKatha Creative Lab (RAW vs Graded Master)</strong> slider ko customize kar sakte hain — naye Before &amp; After images upload karein, titles aur labels change karein.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <a
+                  href="/#creative-lab"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <Eye className="size-3.5 text-cyan-400" />
+                  <span>View on Homepage</span>
+                  <ExternalLink className="size-3 text-slate-400" />
+                </a>
+              </div>
+            </div>
+
+            {/* 1. Main Homepage Slider Card */}
+            <div className="glass-strong rounded-3xl p-6 sm:p-8 border border-cyan-500/30 space-y-8 shadow-[0_0_30px_rgba(6,182,212,0.1)]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="size-11 rounded-2xl bg-gradient-to-tr from-pink-600/30 to-purple-600/30 border border-pink-500/40 grid place-items-center text-pink-300">
+                    <SlidersHorizontal className="size-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-white flex items-center gap-2">
+                      Homepage Creative Lab Slider
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        settingsForm.creativeLab?.enabled !== false
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                          : "bg-slate-500/20 text-slate-400 border border-white/10"
+                      }`}>
+                        {settingsForm.creativeLab?.enabled !== false ? "🟢 Active on Home" : "⚪ Disabled"}
+                      </span>
+                    </h4>
+                    <p className="text-xs text-slate-400">
+                      Live interactive Before / After slider shown on the public Homepage.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateCreativeLab({
+                        enabled: settingsForm.creativeLab?.enabled === false ? true : false
+                      })
+                    }
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      settingsForm.creativeLab?.enabled !== false
+                        ? "bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40"
+                        : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40"
+                    }`}
+                  >
+                    {settingsForm.creativeLab?.enabled !== false ? "Hide on Homepage" : "Show on Homepage"}
+                  </button>
+                </div>
+              </div>
+
+              {/* LIVE PREVIEW COMPONENT */}
+              <div className="p-4 sm:p-6 rounded-2xl bg-black/60 border border-cyan-500/30 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[11px] font-mono text-cyan-300 uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles className="size-3.5 text-cyan-400" />
+                    Live Interactive Preview (Drag handle to test):
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">Real-time dynamic preview</span>
+                </div>
+
+                <BeforeAfterSlider
+                  beforeImage={cleanMediaUrl(settingsForm.creativeLab?.beforeImage || "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=80&sat=-100")}
+                  afterImage={cleanMediaUrl(settingsForm.creativeLab?.afterImage || "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200&auto=format&fit=crop&q=80")}
+                  beforeLabel={settingsForm.creativeLab?.beforeLabel || "Flat RAW Profile"}
+                  afterLabel={settingsForm.creativeLab?.afterLabel || "Cinematic Teal & Orange Grade"}
+                />
+              </div>
+
+              {/* IMAGE UPLOAD & URL CONTROLS */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 1. BEFORE IMAGE */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-black/40 border border-white/10 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                      📷 1. Before Image (Original RAW / Flat)
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-slate-400 font-mono">Left Side</span>
+                  </div>
+
+                  <FileUploadPicker
+                    label="Upload Before Image (RAW / Original)"
+                    value={settingsForm.creativeLab?.beforeImage}
+                    onChange={(url) => updateCreativeLab({ beforeImage: url })}
+                    hint="Choose unedited RAW photo from your phone or PC"
+                  />
+
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1 font-semibold">Or Image URL</label>
+                    <input
+                      type="text"
+                      value={settingsForm.creativeLab?.beforeImage || ""}
+                      onChange={(e) => updateCreativeLab({ beforeImage: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1 font-semibold">Left Corner Badge Label</label>
+                    <input
+                      type="text"
+                      value={settingsForm.creativeLab?.beforeLabel || ""}
+                      onChange={(e) => updateCreativeLab({ beforeLabel: e.target.value })}
+                      placeholder="e.g. Flat RAW Profile"
+                      className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* 2. AFTER IMAGE */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-black/40 border border-white/10 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                      ✨ 2. After Image (Color Graded Master)
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">Right Side</span>
+                  </div>
+
+                  <FileUploadPicker
+                    label="Upload After Image (Color Graded)"
+                    value={settingsForm.creativeLab?.afterImage}
+                    onChange={(url) => updateCreativeLab({ afterImage: url })}
+                    hint="Choose final edited / color graded photo"
+                  />
+
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1 font-semibold">Or Image URL</label>
+                    <input
+                      type="text"
+                      value={settingsForm.creativeLab?.afterImage || ""}
+                      onChange={(e) => updateCreativeLab({ afterImage: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1 font-semibold">Right Corner Badge Label</label>
+                    <input
+                      type="text"
+                      value={settingsForm.creativeLab?.afterLabel || ""}
+                      onChange={(e) => updateCreativeLab({ afterLabel: e.target.value })}
+                      placeholder="e.g. Cinematic Teal & Orange Grade"
+                      className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION TITLES & LABELS */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1 font-semibold">Top Badge Text</label>
+                  <input
+                    type="text"
+                    value={settingsForm.creativeLab?.badgeText || ""}
+                    onChange={(e) => updateCreativeLab({ badgeText: e.target.value })}
+                    placeholder="e.g. FrameKatha Creative Lab"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1 font-semibold">Main Heading Title</label>
+                  <input
+                    type="text"
+                    value={settingsForm.creativeLab?.title || ""}
+                    onChange={(e) => updateCreativeLab({ title: e.target.value })}
+                    placeholder="e.g. RAW vs Graded Master"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs text-slate-400 mb-1 font-semibold">Description / Subtitle</label>
+                  <textarea
+                    rows={2}
+                    value={settingsForm.creativeLab?.description || ""}
+                    onChange={(e) => updateCreativeLab({ description: e.target.value })}
+                    placeholder="Drag the interactive slider below to see how FrameKatha transforms flat RAW camera footage..."
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none resize-none"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs text-slate-400 mb-1 font-semibold">Footer Note / Tool Tag</label>
+                  <input
+                    type="text"
+                    value={settingsForm.creativeLab?.footerNote || ""}
+                    onChange={(e) => updateCreativeLab({ footerNote: e.target.value })}
+                    placeholder="e.g. Color graded using DaVinci Resolve & custom 3D LUTs"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* SAVE BUTTON */}
+              <div className="flex items-center gap-4 pt-4 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={handleSaveCreativeLab}
+                  disabled={savingSettings}
+                  className="btn-neon text-xs px-8 py-3 flex items-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                >
+                  <Save className="size-4" />
+                  {savingSettings ? "Saving Changes..." : "Save Before & After Settings"}
+                </button>
+                {settingsSavedSuccess && (
+                  <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5 animate-fade-in">
+                    <CheckCircle2 className="size-4" /> Changes saved and updated on Homepage!
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* 2. PROJECT-LEVEL BEFORE & AFTER COMPARISONS */}
+            <div className="glass-strong rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="size-11 rounded-2xl bg-gradient-to-tr from-purple-600/30 to-blue-600/30 border border-purple-500/40 grid place-items-center text-purple-300">
+                    <Layers className="size-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-white flex items-center gap-2">
+                      Portfolio Albums with Before &amp; After Slider
+                    </h4>
+                    <p className="text-xs text-slate-400">
+                      Portfolio items jisme unedited RAW vs final photo ka comparison slider on hai.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetForm();
+                    setEditingProjectId(null);
+                    setShowAddProject(true);
+                    setActiveTab("projects");
+                  }}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <Plus className="size-3.5 text-cyan-400" />
+                  <span>New Album with Before/After</span>
+                </button>
+              </div>
+
+              {/* LIST OF PROJECTS WITH BEFORE/AFTER */}
+              {(() => {
+                const comparisonProjects = projects.filter((p: any) => p.beforeImage || p.afterImage);
+                if (comparisonProjects.length === 0) {
+                  return (
+                    <div className="p-8 text-center rounded-2xl bg-white/5 border border-dashed border-white/15 space-y-3">
+                      <SlidersHorizontal className="size-8 text-slate-500 mx-auto" />
+                      <p className="text-xs text-slate-400 max-w-md mx-auto">
+                        Abhi kisi individual portfolio album mein Before &amp; After photo set nahi hai.
+                        Aap kisi bhi album ko edit karke <strong>Step 5 (Interactive Before / After Comparison)</strong> me RAW aur Edited photo add kar sakte hain.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resetForm();
+                          setEditingProjectId(null);
+                          setShowAddProject(true);
+                          setActiveTab("projects");
+                        }}
+                        className="btn-ghost-neon text-xs px-4 py-2 inline-flex items-center gap-2 cursor-pointer"
+                      >
+                        <Plus className="size-3.5" /> Create Project with Before/After
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {comparisonProjects.map((p: any) => (
+                      <div
+                        key={p.id}
+                        className="p-4 rounded-2xl bg-black/40 border border-white/10 hover:border-cyan-500/40 transition-all space-y-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white truncate max-w-[180px]">{p.title}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono">
+                            {p.category}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 font-mono">
+                          <div className="space-y-1">
+                            <span>RAW Before:</span>
+                            {p.beforeImage ? (
+                              <img
+                                src={cleanMediaUrl(p.beforeImage)}
+                                alt="Before"
+                                className="w-full h-20 object-cover rounded-lg border border-white/10"
+                              />
+                            ) : (
+                              <div className="w-full h-20 bg-white/5 rounded-lg border border-white/10 grid place-items-center text-slate-600 text-[10px]">
+                                No RAW
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="space-y-1">
+                            <span>Edited After:</span>
+                            {p.afterImage ? (
+                              <img
+                                src={cleanMediaUrl(p.afterImage)}
+                                alt="After"
+                                className="w-full h-20 object-cover rounded-lg border border-white/10"
+                              />
+                            ) : (
+                              <div className="w-full h-20 bg-white/5 rounded-lg border border-white/10 grid place-items-center text-slate-600 text-[10px]">
+                                No Edit
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleEditClick(p);
+                            setShowAddProject(true);
+                            setActiveTab("projects");
+                          }}
+                          className="w-full py-2 rounded-xl bg-white/5 hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/10 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <Edit className="size-3" />
+                          <span>Edit in Step 5</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
 
         {/* TAB 2: PROJECTS MANAGEMENT */}
         {activeTab === "projects" && (
@@ -3617,6 +4039,99 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   <Plus className="size-4" />
                   <span>Add Video to Showcase</span>
                 </button>
+              </div>
+            </div>
+
+            {/* 5. Homepage Creative Lab: Before & After Slider */}
+            <div className="glass-strong rounded-3xl p-6 sm:p-8 border border-pink-500/30 space-y-6 shadow-[0_0_30px_rgba(236,72,153,0.1)]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="size-11 rounded-2xl bg-gradient-to-tr from-pink-600/30 to-purple-600/30 border border-pink-500/40 grid place-items-center text-pink-300">
+                    <SlidersHorizontal className="size-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      Homepage Creative Lab (Before &amp; After Slider)
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        settingsForm.creativeLab?.enabled !== false
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                          : "bg-slate-500/20 text-slate-400 border border-white/10"
+                      }`}>
+                        {settingsForm.creativeLab?.enabled !== false ? "🟢 Active on Home" : "⚪ Disabled"}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      RAW photo vs Color Graded masterpiece comparison slider on the Homepage.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("before-after")}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    <SlidersHorizontal className="size-3.5 text-pink-400" />
+                    <span>Open Full Slider Manager</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateCreativeLab({
+                        enabled: settingsForm.creativeLab?.enabled === false ? true : false
+                      })
+                    }
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      settingsForm.creativeLab?.enabled !== false
+                        ? "bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40"
+                        : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40"
+                    }`}
+                  >
+                    {settingsForm.creativeLab?.enabled !== false ? "Disable on Home" : "Enable on Home"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Image Uploaders */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-200">📷 Left Image (Before / Flat RAW):</span>
+                    <span className="text-[10px] text-slate-400 font-mono">{settingsForm.creativeLab?.beforeLabel || "Flat RAW Profile"}</span>
+                  </div>
+                  <FileUploadPicker
+                    label="Upload Before Image (RAW)"
+                    value={settingsForm.creativeLab?.beforeImage}
+                    onChange={(url) => updateCreativeLab({ beforeImage: url })}
+                  />
+                  <input
+                    type="text"
+                    value={settingsForm.creativeLab?.beforeLabel || ""}
+                    onChange={(e) => updateCreativeLab({ beforeLabel: e.target.value })}
+                    placeholder="Left Label (e.g. Flat RAW Profile)"
+                    className="w-full px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+
+                <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-cyan-300">✨ Right Image (After / Graded):</span>
+                    <span className="text-[10px] text-cyan-400 font-mono">{settingsForm.creativeLab?.afterLabel || "Cinematic Teal & Orange Grade"}</span>
+                  </div>
+                  <FileUploadPicker
+                    label="Upload After Image (Graded)"
+                    value={settingsForm.creativeLab?.afterImage}
+                    onChange={(url) => updateCreativeLab({ afterImage: url })}
+                  />
+                  <input
+                    type="text"
+                    value={settingsForm.creativeLab?.afterLabel || ""}
+                    onChange={(e) => updateCreativeLab({ afterLabel: e.target.value })}
+                    placeholder="Right Label (e.g. Cinematic Teal & Orange Grade)"
+                    className="w-full px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
               </div>
             </div>
 
