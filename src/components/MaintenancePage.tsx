@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-
-const API_BASE = "/api";
+import { API_BASE_URL } from "@/lib/api";
 
 interface MaintenanceStatus {
   maintenanceMode: boolean;
@@ -85,7 +84,7 @@ export function useMaintenanceStatus(): MaintenanceStatus | null {
   const [status, setStatus] = useState<MaintenanceStatus | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/settings/maintenance`)
+    fetch(`${API_BASE_URL}/settings/maintenance`)
       .then((r) => r.json())
       .then((data) => setStatus(data))
       .catch(() => setStatus({ maintenanceMode: false, maintenanceMessage: "" }));

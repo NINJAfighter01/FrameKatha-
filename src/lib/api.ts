@@ -1,4 +1,4 @@
-export const CLOUD_API_BASE = 'https://6ad9d5d7ca6f1faa487c83cb--framekatha-api-studio.netlify.app/api';
+export const CLOUD_API_BASE = 'https://6ada0037fda6ddfef2354c67--framekatha-api-studio.netlify.app/api';
 
 export function getApiBaseUrl(): string {
   if (typeof window === 'undefined') return CLOUD_API_BASE;
@@ -19,12 +19,13 @@ export function cleanMediaUrl(url: any): string {
   if (typeof url !== 'string' || !url) return '';
   // If it's a relative /uploads/... from backend, route to the cloud media CDN
   if (url.startsWith('/uploads/')) {
-    return `https://6ad9d5d7ca6f1faa487c83cb--framekatha-api-studio.netlify.app/api${url}`;
+    return `https://6ada0037fda6ddfef2354c67--framekatha-api-studio.netlify.app/api${url}`;
   }
   return url
-    .replace(/^https?:\/\/localhost:\d+\/uploads/i, 'https://6ad9d5d7ca6f1faa487c83cb--framekatha-api-studio.netlify.app/api/uploads')
-    .replace(/^https?:\/\/127\.0\.0\.1:\d+\/uploads/i, 'https://6ad9d5d7ca6f1faa487c83cb--framekatha-api-studio.netlify.app/api/uploads')
-    .replace(/^https?:\/\/0\.0\.0\.0:\d+\/uploads/i, 'https://6ad9d5d7ca6f1faa487c83cb--framekatha-api-studio.netlify.app/api/uploads')
+    .replace(/^https?:\/\/localhost:\d+\/uploads/i, 'https://6ada0037fda6ddfef2354c67--framekatha-api-studio.netlify.app/api/uploads')
+    .replace(/^https?:\/\/127\.0\.0\.1:\d+\/uploads/i, 'https://6ada0037fda6ddfef2354c67--framekatha-api-studio.netlify.app/api/uploads')
+    .replace(/^https?:\/\/0\.0\.0\.0:\d+\/uploads/i, 'https://6ada0037fda6ddfef2354c67--framekatha-api-studio.netlify.app/api/uploads')
+    .replace(/^https?:\/\/6ad9d5d7ca6f1faa487c83cb--framekatha-api-studio\.netlify\.app\/api\/uploads/i, 'https://6ada0037fda6ddfef2354c67--framekatha-api-studio.netlify.app/api/uploads')
     .replace(/^https?:\/\/localhost:\d+/i, '')
     .replace(/^https?:\/\/127\.0\.0\.1:\d+/i, '')
     .replace(/^https?:\/\/0\.0\.0\.0:\d+/i, '');
@@ -548,10 +549,9 @@ export async function fetchProjectBySlug(slug: string) {
 }
 
 export async function incrementProjectViews(projectId: string) {
-  const today = new Date().toISOString().slice(0, 10);
-  const storageKey = `fk_viewed_${projectId}_${today}`;
-  if (localStorage.getItem(storageKey)) return;
-  localStorage.setItem(storageKey, "1");
+  const sessionKey = `fk_view_${projectId}_${Math.floor(Date.now() / 60000)}`; // 1 min throttle per session
+  if (sessionStorage.getItem(sessionKey)) return;
+  sessionStorage.setItem(sessionKey, "1");
 
   await safeApiFetch(`${API_BASE_URL}/projects/${projectId}/views`, { method: 'POST' });
 
@@ -823,34 +823,34 @@ export async function fetchAnalytics() {
   const totalViews = projects.reduce((sum: number, p: any) => sum + (p.views || 0), 0);
   const featuredCount = projects.filter((p: any) => p.featured === true).length;
   const sorted = [...projects].sort((a: any, b: any) => (b.views || 0) - (a.views || 0));
-  const mostViewed = sorted[0] || { title: "Ganpati bappa morya", views: 128 };
+  const mostViewed = sorted[0] || { title: "None", views: 0 };
 
   const categoryViews = categories.map((c: any) => {
     const views = projects
       .filter((p: any) => p.category?.toLowerCase() === c.name?.toLowerCase())
       .reduce((sum: number, p: any) => sum + (p.views || 0), 0);
-    return { category: c.name, views: views || 50 };
+    return { category: c.name, views };
   });
 
   return {
     overview: {
       totalProjects: projects.length,
-      totalViews: totalViews || 885,
-      featuredProjects: featuredCount || 4,
+      totalViews,
+      featuredProjects: featuredCount,
       categoriesCount: categories.length,
       mostViewedProject: {
-        title: mostViewed.title || "Ganpati bappa morya",
-        views: mostViewed.views || 312
+        title: mostViewed.title || "None",
+        views: mostViewed.views || 0
       }
     },
     categoryViews: categoryViews,
     timeline: [
-      { month: "May", views: 95 },
-      { month: "Jun", views: 140 },
-      { month: "Jul", views: 210 },
-      { month: "Aug", views: 280 },
-      { month: "Sep", views: 340 },
-      { month: "Oct", views: totalViews || 420 }
+      { month: "May", views: Math.max(0, Math.floor(totalViews * 0.15)) },
+      { month: "Jun", views: Math.max(0, Math.floor(totalViews * 0.3)) },
+      { month: "Jul", views: Math.max(0, Math.floor(totalViews * 0.5)) },
+      { month: "Aug", views: Math.max(0, Math.floor(totalViews * 0.7)) },
+      { month: "Sep", views: Math.max(0, Math.floor(totalViews * 0.85)) },
+      { month: "Oct", views: totalViews }
     ],
     devices: [
       { name: "Desktop / Laptop", percentage: 55 },
@@ -1139,12 +1139,24 @@ export async function deleteClientGallery(id: string): Promise<any> {
 
 export async function fetchGalleryPublicMeta(slug: string): Promise<any> {
   const data = await safeApiFetch<any>(`${API_BASE_URL}/client-galleries/info/${slug}`);
-  if (data) {
+  if (data && data.clientName) {
     return { ...data, coverImage: cleanMediaUrl(data.coverImage) };
   }
 
-  const all = getLocalStore('client_galleries', DEFAULT_CLIENT_GALLERIES);
-  const found = all.find((g: any) => g.slug === slug || g.id === slug) || all[0];
+  // Fallback: sync galleries list from authoritative cloud backend
+  let all = getLocalStore('client_galleries', []);
+  if (!all.length) {
+    try {
+      all = await fetchClientGalleries();
+    } catch {
+      all = DEFAULT_CLIENT_GALLERIES;
+    }
+  }
+
+  const found = all.find((g: any) => g.slug === slug || g.id === slug || g.slug?.toLowerCase() === slug?.toLowerCase());
+  if (!found) {
+    return null;
+  }
   return {
     clientName: found.clientName,
     eventTitle: found.eventTitle,
@@ -1163,7 +1175,7 @@ export async function verifyClientPasscode(slug: string, passcode: string): Prom
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ passcode }),
   });
-  if (data) {
+  if (data && !data.error && data.clientName) {
     return {
       ...data,
       coverImage: cleanMediaUrl(data.coverImage),
@@ -1171,13 +1183,25 @@ export async function verifyClientPasscode(slug: string, passcode: string): Prom
       selectedImages: Array.isArray(data.selectedImages) ? data.selectedImages.map(cleanMediaUrl) : []
     };
   }
+  if (data && data.error) {
+    throw new Error(data.error);
+  }
 
-  const all = getLocalStore('client_galleries', DEFAULT_CLIENT_GALLERIES);
-  const found = all.find((g: any) => g.slug === slug || g.id === slug);
+  // Fallback: search synced galleries from cloud
+  let all = getLocalStore('client_galleries', []);
+  if (!all.length) {
+    try {
+      all = await fetchClientGalleries();
+    } catch {
+      all = DEFAULT_CLIENT_GALLERIES;
+    }
+  }
+
+  const found = all.find((g: any) => g.slug === slug || g.id === slug || g.slug?.toLowerCase() === slug?.toLowerCase());
   if (!found) {
     throw new Error('Secret gallery not found.');
   }
-  if (found.passcode !== passcode.trim()) {
+  if (String(found.passcode).trim() !== String(passcode).trim()) {
     throw new Error('Galat passcode! Dobara koshish karein.');
   }
 

@@ -366,7 +366,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     camera: "",
     lens: "",
     editingSoftware: "",
-    year: 2026,
+    year: 2026 as number | string,
     location: "",
     featured: false,
     published: true,
@@ -802,7 +802,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       camera: "",
       lens: "",
       editingSoftware: "",
-      year: 2026,
+      year: 2026 as number | string,
       location: "",
       featured: false,
       published: true,
@@ -993,26 +993,26 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
         {/* TAB 1: ANALYTICS */}
         {activeTab === "analytics" && (() => {
+          const totalRealViews = projects.reduce((sum: number, p: any) => sum + (p.views || 0), 0);
           const overview = analytics?.overview || {
-            totalProjects: projects.length || 7,
-            totalViews: 885,
-            featuredProjects: 4,
-            mostViewedProject: { title: "Ganpati bappa morya", views: 312 }
+            totalProjects: projects.length,
+            totalViews: totalRealViews,
+            featuredProjects: projects.filter((p: any) => p.featured === true).length,
+            mostViewedProject: [...projects].sort((a: any, b: any) => (b.views || 0) - (a.views || 0))[0] || { title: "None", views: 0 }
           };
-          const catViewsList = analytics?.categoryViews || [
-            { category: "Photography", views: 340 },
-            { category: "Photo Editing", views: 210 },
-            { category: "Digital Art", views: 180 },
-            { category: "Poster Design", views: 95 },
-            { category: "Thumbnail Design", views: 60 }
-          ];
+          const catViewsList = (analytics?.categoryViews && analytics.categoryViews.length > 0)
+            ? analytics.categoryViews
+            : categories.map((c: any) => ({
+                category: c.name || c.id,
+                views: projects.filter((p: any) => p.category?.toLowerCase() === (c.name || c.id).toLowerCase()).reduce((s: number, p: any) => s + (p.views || 0), 0)
+              }));
           const timelineList = analytics?.timeline || [
-            { month: "May", views: 95 },
-            { month: "Jun", views: 140 },
-            { month: "Jul", views: 210 },
-            { month: "Aug", views: 280 },
-            { month: "Sep", views: 340 },
-            { month: "Oct", views: 420 }
+            { month: "May", views: Math.max(0, Math.floor(totalRealViews * 0.15)) },
+            { month: "Jun", views: Math.max(0, Math.floor(totalRealViews * 0.3)) },
+            { month: "Jul", views: Math.max(0, Math.floor(totalRealViews * 0.5)) },
+            { month: "Aug", views: Math.max(0, Math.floor(totalRealViews * 0.7)) },
+            { month: "Sep", views: Math.max(0, Math.floor(totalRealViews * 0.85)) },
+            { month: "Oct", views: totalRealViews }
           ];
 
           const maxCatViews = Math.max(1, ...catViewsList.map((cv: any) => cv.views || 0));
@@ -1724,9 +1724,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="space-y-1">
-                      <label className="block text-xs text-slate-300 font-semibold">6A. Search Tags (Comma separated)</label>
+                      <label className="block text-xs text-slate-300 font-semibold">6A. Search Tags</label>
                       <input
                         type="text"
                         placeholder="Wedding, Night, Candid, Royal"
@@ -1734,11 +1734,11 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                         onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs focus:border-cyan-300 focus:outline-none"
                       />
-                      <span className="text-[10px] text-slate-400">Search bar ke keywords</span>
+                      <span className="text-[10px] text-slate-400">Search keywords (comma separated)</span>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="block text-xs text-slate-300 font-semibold">6B. Camera &amp; Editing Software</label>
+                      <label className="block text-xs text-slate-300 font-semibold">6B. Camera &amp; Software</label>
                       <input
                         type="text"
                         placeholder="Sony A7IV, Lightroom, Photoshop"
@@ -1750,15 +1750,27 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="block text-xs text-slate-300 font-semibold">6C. Year &amp; Location</label>
+                      <label className="block text-xs text-slate-300 font-semibold">6C. Shoot Year</label>
                       <input
                         type="text"
-                        placeholder="2026, Udaipur Palace, Rajasthan"
+                        placeholder="2026"
+                        value={formData.year}
+                        onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs focus:border-cyan-300 focus:outline-none"
+                      />
+                      <span className="text-[10px] text-slate-400">Shoot year (e.g. 2026)</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-xs text-slate-300 font-semibold">6D. Shoot Location</label>
+                      <input
+                        type="text"
+                        placeholder="Udaipur Palace, Rajasthan"
                         value={formData.location}
                         onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs focus:border-cyan-300 focus:outline-none"
                       />
-                      <span className="text-[10px] text-slate-400">Shoot year &amp; city</span>
+                      <span className="text-[10px] text-slate-400">City, Studio, or Venue</span>
                     </div>
                   </div>
 
@@ -2893,9 +2905,19 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 {/* Big Toggle Switch Button */}
                 <button
                   type="button"
-                  onClick={() =>
-                    setSettingsForm({ ...settingsForm, maintenanceMode: !settingsForm.maintenanceMode })
-                  }
+                  onClick={async () => {
+                    const nextMode = !settingsForm.maintenanceMode;
+                    const updated = { ...settingsForm, maintenanceMode: nextMode };
+                    setSettingsForm(updated);
+                    try {
+                      await updateSiteSettings(updated);
+                      setSiteSettings(updated);
+                      setSettingsSavedSuccess(true);
+                      setTimeout(() => setSettingsSavedSuccess(false), 3000);
+                    } catch (err) {
+                      console.error("Failed to update maintenance mode:", err);
+                    }
+                  }}
                   className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
                     settingsForm.maintenanceMode
                       ? "bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.4)]"

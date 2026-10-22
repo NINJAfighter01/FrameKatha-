@@ -12,9 +12,8 @@ import { AdminPage } from '@/routes/admin';
 import { ClientPortalPage } from '@/routes/client-portal';
 import { NotFoundPage } from '@/routes/not-found';
 import { MaintenancePage } from '@/components/MaintenancePage';
+import { fetchSiteSettings } from '@/lib/api';
 import '@/index.css';
-
-const API_BASE = '/api';
 
 /**
  * App shell that checks maintenance mode before rendering any public page.
@@ -35,11 +34,10 @@ function AppShell() {
       setChecked(true);
       return;
     }
-    fetch(`${API_BASE}/settings/maintenance`)
-      .then((r) => r.json())
+    fetchSiteSettings()
       .then((data) => {
-        setMaintenanceMode(data.maintenanceMode ?? false);
-        setMaintenanceMessage(data.maintenanceMessage ?? '');
+        setMaintenanceMode(Boolean(data?.maintenanceMode));
+        setMaintenanceMessage(data?.maintenanceMessage || "We're currently performing scheduled maintenance. Please check back shortly! 🚀");
       })
       .catch(() => {
         // If backend unreachable, don't block the site
