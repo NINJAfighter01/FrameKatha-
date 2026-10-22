@@ -84,7 +84,8 @@ import {
   Play,
   ArrowUp,
   ArrowDown,
-  Tv
+  Tv,
+  MessageCircle
 } from "lucide-react";
 
 // ── Admin password ───────────────────────────────────────────────────────────
@@ -390,10 +391,12 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     aboutText: "FrameKatha is an AI-powered creative portfolio platform showcasing photography, digital art, color grading, and visual storytelling.",
     socialLinks: {
       instagram: "https://instagram.com/framekatha",
-      github: "https://github.com/framekatha",
+      github: "https://github.com/parasaware30/Framekatha",
       linkedin: "https://linkedin.com/in/framekatha",
       youtube: "https://youtube.com/@framekatha",
-      email: "hello@framekatha.com"
+      email: "parasaware05@gmail.com",
+      whatsapp: "918828447337",
+      phone: "+91 8828447337"
     },
     maintenanceMode: false,
     maintenanceMessage: "We're sprinkling some magic on FrameKatha ✨\nOur team is working hard to bring you an even better experience.\nWe'll be back shortly — thank you for your patience! 🚀",
@@ -600,12 +603,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           title: settData.title || "FrameKatha",
           tagline: settData.tagline || "Every Frame Tells a Story.",
           aboutText: settData.aboutText || "",
-          socialLinks: settData.socialLinks || {
-            instagram: "",
-            github: "",
-            linkedin: "",
-            youtube: "",
-            email: ""
+          socialLinks: {
+            instagram: settData.socialLinks?.instagram || "https://instagram.com/framekatha",
+            github: settData.socialLinks?.github || "https://github.com/parasaware30/Framekatha",
+            linkedin: settData.socialLinks?.linkedin || "https://linkedin.com/in/framekatha",
+            youtube: settData.socialLinks?.youtube || "https://youtube.com/@framekatha",
+            email: settData.socialLinks?.email || "parasaware05@gmail.com",
+            whatsapp: settData.socialLinks?.whatsapp || "918828447337",
+            phone: settData.socialLinks?.phone || "+91 8828447337"
           },
           maintenanceMode: settData.maintenanceMode ?? false,
           maintenanceMessage: settData.maintenanceMessage || "We're sprinkling some magic on FrameKatha ✨\nOur team is working hard to bring you an even better experience.\nWe'll be back shortly — thank you for your patience! 🚀",
@@ -2794,20 +2799,54 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         {/* TAB 5: MESSAGES */}
         {activeTab === "messages" && (
           <div className="space-y-4 animate-fade-in max-w-4xl mx-auto">
-            <h2 className="text-xl font-bold font-display text-white">Contact Messages ({messages.length})</h2>
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <h2 className="text-xl font-bold font-display text-white">Contact Messages &amp; Inquiries ({messages.length})</h2>
+              <span className="text-xs text-emerald-400 font-mono bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">
+                Studio WhatsApp: +91 8828447337
+              </span>
+            </div>
             {messages.length > 0 ? (
-              messages.map((m) => (
-                <div key={m.id} className="glass-strong rounded-2xl p-5 border border-white/10 space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-cyan-400">{m.name} ({m.email})</span>
-                    <button onClick={() => deleteMessage(m.id).then(loadCMSData)} className="text-red-400 hover:text-red-300">
-                      <Trash2 className="size-4" />
-                    </button>
+              messages.map((m) => {
+                const phoneMatch = m.message?.match(/(?:Phone|Mob|Mobile|Tel|Contact):\s*(\+?[0-9\s-]{10,})/i);
+                const extractedPhone = phoneMatch ? phoneMatch[1].replace(/[^0-9]/g, "") : null;
+                const waUrl = extractedPhone
+                  ? `https://wa.me/${extractedPhone}?text=${encodeURIComponent(`Hello ${m.name}! Paras here from FrameKatha regarding your inquiry: "${m.subject}".`)}`
+                  : `https://wa.me/?text=${encodeURIComponent(`FrameKatha Inquiry from ${m.name} (${m.email}):\n${m.subject}\n\n${m.message}`)}`;
+
+                return (
+                  <div key={m.id} className="glass-strong rounded-2xl p-5 border border-white/10 space-y-3 hover:border-cyan-500/30 transition-all">
+                    <div className="flex flex-wrap justify-between items-center gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-cyan-400">{m.name}</span>
+                        <span className="text-slate-400">({m.email})</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold flex items-center gap-1.5 transition-all"
+                          title="Open WhatsApp chat with client"
+                        >
+                          <MessageCircle className="size-3.5" />
+                          <span>{extractedPhone ? `WhatsApp Client (${extractedPhone})` : "Share to WhatsApp"}</span>
+                        </a>
+                        <button
+                          onClick={() => deleteMessage(m.id).then(loadCMSData)}
+                          className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                          title="Delete message"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <h4 className="font-bold text-white text-sm">{m.subject}</h4>
+                    <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed bg-black/20 p-3 rounded-xl border border-white/5">
+                      {m.message}
+                    </p>
                   </div>
-                  <h4 className="font-bold text-white text-sm">{m.subject}</h4>
-                  <p className="text-xs text-slate-300">{m.message}</p>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="py-12 text-center text-slate-400 text-xs">No contact messages received yet.</div>
             )}
@@ -3019,12 +3058,42 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   <label className="block text-xs text-slate-400 mb-1 font-semibold">Contact Email</label>
                   <input
                     type="email"
-                    placeholder="hello@framekatha.com"
+                    placeholder="parasaware05@gmail.com"
                     value={settingsForm.socialLinks.email || ""}
                     onChange={(e) =>
                       setSettingsForm({
                         ...settingsForm,
                         socialLinks: { ...settingsForm.socialLinks, email: e.target.value }
+                      })
+                    }
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1 font-semibold">WhatsApp Number (e.g. 918828447337)</label>
+                  <input
+                    type="text"
+                    placeholder="918828447337"
+                    value={settingsForm.socialLinks.whatsapp || ""}
+                    onChange={(e) =>
+                      setSettingsForm({
+                        ...settingsForm,
+                        socialLinks: { ...settingsForm.socialLinks, whatsapp: e.target.value }
+                      })
+                    }
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1 font-semibold">Phone Number Display (e.g. +91 8828447337)</label>
+                  <input
+                    type="text"
+                    placeholder="+91 8828447337"
+                    value={settingsForm.socialLinks.phone || ""}
+                    onChange={(e) =>
+                      setSettingsForm({
+                        ...settingsForm,
+                        socialLinks: { ...settingsForm.socialLinks, phone: e.target.value }
                       })
                     }
                     className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none"

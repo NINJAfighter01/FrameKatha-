@@ -25,6 +25,7 @@ export function ContactPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [lastWhatsAppUrl, setLastWhatsAppUrl] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,6 +37,11 @@ export function ContactPage() {
 
     setLoading(true);
     setError("");
+
+    const formattedWhatsAppMsg = `*New FrameKatha Project Inquiry!* 📸\n\n*Name:* ${name.trim()}\n*Email:* ${email.trim()}\n*Service:* ${service}\n*Subject:* ${subject.trim() || `Inquiry for ${service}`}\n\n*Message:*\n${message.trim()}\n\n---\n_Sent via FrameKatha Website_`;
+    const waUrl = getWhatsAppLink(formattedWhatsAppMsg);
+    setLastWhatsAppUrl(waUrl);
+
     try {
       await sendMessage({
         name: name.trim(),
@@ -48,8 +54,12 @@ export function ContactPage() {
       setEmail("");
       setSubject("");
       setMessage("");
+
+      // Directly open WhatsApp with pre-filled inquiry details to 8828447337
+      window.open(waUrl, "_blank");
     } catch (err: any) {
       setError("Unable to transmit message. You can also contact directly via WhatsApp or Email.");
+      window.open(waUrl, "_blank");
     } finally {
       setLoading(false);
     }
@@ -87,12 +97,12 @@ export function ContactPage() {
               </div>
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">
-                  Fastest Response
+                  Fastest Response • +91 8828447337
                 </span>
                 <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">
                   Chat on WhatsApp
                 </h3>
-                <span className="text-xs text-slate-400">Direct message with Paras</span>
+                <span className="text-xs text-slate-400">Direct message with Paras Aware</span>
               </div>
             </div>
             <span className="text-xs font-bold text-emerald-400 group-hover:translate-x-1 transition-transform">
@@ -200,25 +210,25 @@ export function ContactPage() {
                 <div className="size-16 mx-auto rounded-full bg-cyan-500/20 text-cyan-400 grid place-items-center">
                   <CheckCircle2 className="size-8" />
                 </div>
-                <h3 className="text-xl font-bold font-display text-white">Inquiry Received!</h3>
+                <h3 className="text-xl font-bold font-display text-white">Inquiry Received &amp; WhatsApp Connected!</h3>
                 <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
-                  Thank you for reaching out to FrameKatha. Your message has been saved and creator Paras will review your brief shortly.
+                  Thank you for reaching out to FrameKatha. Your message has been saved and forwarded to creator Paras Aware on WhatsApp (<span className="text-emerald-400 font-semibold">+91 8828447337</span>).
                 </p>
-                <div className="pt-2 flex justify-center gap-3">
+                <div className="pt-2 flex flex-col sm:flex-row justify-center items-center gap-3">
+                  <a
+                    href={lastWhatsAppUrl || getWhatsAppLink()}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-neon text-xs px-5 py-2.5 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 border-emerald-400 text-white font-bold shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                  >
+                    <MessageCircle className="size-4" /> Open in WhatsApp (+91 8828447337)
+                  </a>
                   <button
                     onClick={() => setSent(false)}
                     className="btn-ghost-neon text-xs px-4 py-2"
                   >
                     Send Another Message
                   </button>
-                  <a
-                    href={getWhatsAppLink()}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-neon text-xs px-4 py-2 flex items-center gap-1.5"
-                  >
-                    <MessageCircle className="size-3.5" /> Continue on WhatsApp
-                  </a>
                 </div>
               </div>
             ) : (

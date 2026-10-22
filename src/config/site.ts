@@ -37,6 +37,7 @@ export interface SiteConfig {
   };
   contact: {
     email: string;
+    phone: string;
     whatsappNumber: string;
     whatsappPrefill: string;
     instagramUrl: string;
@@ -62,7 +63,8 @@ export const siteConfig: SiteConfig = {
 
   contact: {
     email: "parasaware05@gmail.com",
-    whatsappNumber: "919172854625", // International format (country code + number)
+    phone: "+91 8828447337",
+    whatsappNumber: "918828447337", // International format (country code + number)
     whatsappPrefill:
       "Hello Paras! I saw your FrameKatha portfolio and would love to discuss a creative project with you.",
     instagramUrl: "https://instagram.com/framekatha",

@@ -316,7 +316,9 @@ export const DEFAULT_SETTINGS: any = {
     github: "https://github.com/parasaware30/Framekatha",
     linkedin: "https://linkedin.com/in/framekatha",
     youtube: "https://youtube.com/@framekatha",
-    email: "parasaware05@gmail.com"
+    email: "parasaware05@gmail.com",
+    whatsapp: "918828447337",
+    phone: "+91 8828447337"
   },
   maintenanceMode: false,
   maintenanceMessage: "We're sprinkling some magic on FrameKatha ✨\nWe'll be back shortly — thank you for your patience! 🚀",

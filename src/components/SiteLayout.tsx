@@ -59,8 +59,11 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
               rel="noopener noreferrer"
               className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all"
             >
-              <MessageCircle className="size-4 text-emerald-400" />
-              <span>Chat on WhatsApp</span>
+              <MessageCircle className="size-4 text-emerald-400 shrink-0" />
+              <div className="text-left">
+                <span className="block font-semibold">Chat on WhatsApp</span>
+                <span className="block text-[10px] text-emerald-400/80 font-mono">+91 8828447337</span>
+              </div>
             </a>
             <a
               href={getMailtoLink()}
@@ -169,7 +172,7 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
                     className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors flex items-center gap-1.5"
                   >
                     <MessageCircle className="size-3.5" />
-                    <span>Chat Directly</span>
+                    <span>+91 8828447337</span>
                   </a>
                 </div>
                 <div className="pt-2 flex items-center gap-3">

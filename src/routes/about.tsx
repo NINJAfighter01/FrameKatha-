@@ -97,7 +97,7 @@ export function AboutPage() {
                 className="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 hover:text-black text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all flex items-center gap-1.5"
               >
                 <MessageCircle className="size-3.5" />
-                <span>Chat on WhatsApp</span>
+                <span>Chat on WhatsApp (+91 8828447337)</span>
               </a>
               <a
                 href={siteConfig.contact.instagramUrl}

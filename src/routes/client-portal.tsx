@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { SiteLayout } from "@/components/SiteLayout";
+import { getWhatsAppLink } from "@/config/site";
 import {
   fetchGalleryPublicMeta,
   verifyClientPasscode,
@@ -26,7 +27,8 @@ import {
   Eye,
   ShieldCheck,
   Send,
-  AlertCircle
+  AlertCircle,
+  MessageCircle
 } from "lucide-react";
 
 export function ClientPortalPage() {
@@ -122,6 +124,9 @@ export function ClientPortalPage() {
       await submitClientFeedback(gallery.slug, clientNotes, selectedImages);
       setFeedbackSuccess(true);
       setShowSubmitModal(false);
+
+      const waMsg = `*FrameKatha Client Album Selection* 📸\n\n*Gallery:* ${gallery.title}\n*Client:* ${gallery.clientName}\n*Selected Photos:* ${selectedImages.length} images\n*Client Notes:* ${clientNotes || "None"}\n\nAlbum selections submitted!`;
+      window.open(getWhatsAppLink(waMsg), "_blank");
     } catch (err) {
       alert("Failed to submit feedback. Please try again.");
     } finally {
@@ -316,11 +321,22 @@ export function ClientPortalPage() {
 
         {/* Feedback Success Notification */}
         {feedbackSuccess && (
-          <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-3 animate-fade-in shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-            <CheckCircle2 className="size-5 shrink-0 text-emerald-400" />
-            <div>
-              <strong>Selections Submitted Successfully!</strong> Paras Aware ko aapki {selectedImages.length} selected photos aur notes mil gaye hain. Album editing shuru ho chuki hai.
+          <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="size-5 shrink-0 text-emerald-400" />
+              <div>
+                <strong>Selections Submitted Successfully!</strong> Paras Aware ko aapki {selectedImages.length} selected photos aur notes mil gaye hain. Album editing shuru ho chuki hai.
+              </div>
             </div>
+            <a
+              href={getWhatsAppLink(`*FrameKatha Client Album Selection* 📸\n\n*Gallery:* ${gallery.title}\n*Client:* ${gallery.clientName}\n*Selected Photos:* ${selectedImages.length} images\n*Client Notes:* ${clientNotes || "None"}`)}
+              target="_blank"
+              rel="noreferrer"
+              className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shrink-0 cursor-pointer"
+            >
+              <MessageCircle className="size-3.5" />
+              <span>Notify on WhatsApp (+91 8828447337)</span>
+            </a>
           </div>
         )}
 
